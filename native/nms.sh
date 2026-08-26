@@ -831,6 +831,14 @@ do_deploy() {
     SRC="${PROJECT_DIR}"
     DST="${INSTALL_DIR}"
 
+    # ── Step -1: Regenerate VERSION from git (if source is a git repo) ────
+    # Version is git-driven (tag/commits). Regenerate the manifest BEFORE
+    # integrity check so VERSION matches the current working tree.
+    if [ -d "${SRC}/.git" ] && command -v git &>/dev/null && command -v python3 &>/dev/null; then
+        step "Regenerating VERSION from git..."
+        ( cd "${SRC}" && python3 native/gen_version.py ) || warn "VERSION regeneration failed; using existing VERSION."
+    fi
+
     # ── Step 0: Verify source integrity via VERSION manifest ─────────────
     step "Verifying source files against VERSION manifest..."
     local SRC_VER_FILE="${SRC}/VERSION"
@@ -966,23 +974,12 @@ do_deploy() {
     setcap cap_net_raw+ep "${DST}/venv/bin/python3" 2>/dev/null || true
     setcap cap_net_raw+ep /usr/bin/ping 2>/dev/null || true
 
-    # Auto-increment VERSION and sync
+    # Sync version file (git-driven; regenerated in Step -1 above)
     if [ -f "${SRC}/VERSION" ]; then
-        local old_ver=$(head -1 "${DST}/VERSION" 2>/dev/null | tr -d '\r' || echo "0.0.0")
         local src_ver=$(head -1 "${SRC}/VERSION" | tr -d '\r')
-        if [ $total_changes -gt 0 ]; then
-            # Bump version: increment last number
-            local major=$(echo "$src_ver" | cut -d. -f1)
-            local minor=$(echo "$src_ver" | cut -d. -f2)
-            local patch=$(echo "$src_ver" | cut -d. -f3)
-            local new_patch=$((patch + 1))
-            local new_ver="${major}.${minor}.${new_patch}"
-            echo "$new_ver" > "${SRC}/VERSION"
-            info "Version bumped: ${src_ver} → ${new_ver}"
-            src_ver="$new_ver"
-        fi
         cp "${SRC}/VERSION" "${DST}/VERSION"
         chown "${NMS_USER}:${NMS_USER}" "${DST}/VERSION" 2>/dev/null || true
+        info "Version: ${src_ver}"
     fi
 
     if [ $total_changes -eq 0 ]; then
@@ -1379,6 +1376,18 @@ _sync_to_install() {
 do_update() {
     banner
     check_root
+
+    # ── Git-first: update from git when source is a git repository ──────
+    if [ -d "${PROJECT_DIR}/.git" ] && command -v git &>/dev/null; then
+        info "Source is a git repository — updating from git."
+        if ( cd "${PROJECT_DIR}" && git pull --ff-only ); then
+            info "git pull OK."
+        else
+            warn "git pull failed (no remote configured or local changes). Proceeding with local state."
+        fi
+        do_deploy
+        return 0
+    fi
 
     local cfg="${INSTALL_DIR}/.update_server"
     if [ ! -f "$cfg" ]; then
