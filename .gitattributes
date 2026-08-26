@@ -1,0 +1,22 @@
+# 强制文本文件使用 LF,避免 Windows autocrlf 将脚本转为 CRLF
+# (CRLF 会破坏 bash 脚本:每个 \r 被当作命令的一部分)
+* text=auto
+
+*.sh     text eol=lf
+*.py     text eol=lf
+*.js     text eol=lf
+*.css    text eol=lf
+*.html   text eol=lf
+*.md     text eol=lf
+*.json   text eol=lf
+*.yaml   text eol=lf
+*.yml    text eol=lf
+*.toml   text eol=lf
+*.txt    text eol=lf
+*.cfg    text eol=lf
+*.conf   text eol=lf
+
+VERSION        text eol=lf
+.env.example   text eol=lf
+.gitignore     text eol=lf
+.gitattributes text eol=lf
