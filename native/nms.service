@@ -1,0 +1,33 @@
+[Unit]
+Description=NMS - Network Management System
+Documentation=https://github.com/nms/nms
+After=network.target mysql.service mysqld.service mariadb.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=nms
+Group=nms
+WorkingDirectory=/opt/nms/backend
+EnvironmentFile=/opt/nms/.env
+ExecStart=/opt/nms/venv/bin/uvicorn app.main:app --host ${HOST} --port ${PORT} --workers 4 --log-level info
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=30
+
+# Security hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/nms
+ReadOnlyPaths=/
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target

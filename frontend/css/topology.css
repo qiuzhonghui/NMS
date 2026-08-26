@@ -1,0 +1,524 @@
+/* =============================================================================
+   Topology Page — Canvas-based interactive network map
+   ============================================================================= */
+
+.topology-page {
+    display: flex;
+    height: calc(100vh - 60px);
+    margin: -20px;
+    overflow: hidden;
+    font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif;
+}
+
+/* ── Left Sidebar ─────────────────────────────────────────────────────────── */
+.topo-sidebar {
+    width: 320px;
+    min-width: 320px;
+    background: #fff;
+    border-right: 1px solid #e1e5eb;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.04);
+    z-index: 20;
+}
+
+.topo-sidebar-header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid #e1e5eb;
+    background: #f8f9fa;
+}
+
+.topo-sidebar-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin-bottom: 2px;
+}
+
+.topo-sidebar-subtitle {
+    font-size: 12px;
+    color: #7f8c8d;
+}
+
+.topo-sidebar-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 20px;
+    border-bottom: 1px solid #e1e5eb;
+    background: #fafbfc;
+}
+
+.topo-sidebar-btn {
+    flex: 1;
+    padding: 8px 6px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fff;
+    color: #374151;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.topo-sidebar-btn:hover {
+    background: #f0f4ff;
+    border-color: #4361ee;
+    color: #4361ee;
+}
+
+.topo-sidebar-btn:active {
+    background: #e0e7ff;
+    transform: scale(0.97);
+}
+
+.topo-sidebar-btn-import {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #166534;
+}
+.topo-sidebar-btn-import:hover {
+    background: #dcfce7;
+    border-color: #22c55e;
+    color: #166534;
+}
+
+.topo-sidebar-btn-full {
+    width: 100%;
+}
+
+.topo-sidebar-btn-discover {
+    background: #4361ee;
+    color: #fff;
+    border-color: #4361ee;
+}
+.topo-sidebar-btn-discover:hover {
+    background: #3651d4;
+    color: #fff;
+}
+
+.topo-sidebar-footer {
+    padding: 12px 20px;
+    border-top: 1px solid #e1e5eb;
+    background: #fafbfc;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* ── Device Library ───────────────────────────────────────────────────────── */
+.topo-device-library {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px 20px;
+}
+
+.topo-device-library::-webkit-scrollbar {
+    width: 5px;
+}
+.topo-device-library::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 10px;
+}
+.topo-device-library::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.topo-loading {
+    padding: 30px 0;
+    text-align: center;
+    color: #999;
+    font-size: 13px;
+}
+
+.topo-category {
+    margin-bottom: 18px;
+}
+
+.topo-category-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed #e1e5eb;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.topo-category-count {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 400;
+    color: #999;
+    background: #f0f0f0;
+    padding: 1px 7px;
+    border-radius: 10px;
+}
+
+.topo-device-item {
+    padding: 8px 10px;
+    background: #f8f9fa;
+    border: 1px solid #e1e5eb;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    cursor: grab;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+    font-size: 13px;
+}
+
+.topo-device-item:hover {
+    background: #eef2ff;
+    border-color: #4361ee;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(67, 97, 238, 0.12);
+}
+
+.topo-device-item:active {
+    cursor: grabbing;
+    transform: scale(0.98);
+}
+
+.topo-device-item.on-map {
+    opacity: 0.65;
+    background: #f0fdf4;
+    border-color: #d1fae5;
+}
+.topo-device-item.on-map:hover {
+    opacity: 0.85;
+    border-color: #22c55e;
+}
+
+.topo-device-item-content {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex: 1;
+    min-width: 0;
+}
+
+.topo-device-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.06);
+}
+
+.topo-device-item-name {
+    font-weight: 500;
+    color: #1a1a2e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.topo-device-item-ip {
+    font-size: 11px;
+    color: #999;
+    font-family: 'Consolas', 'Courier New', monospace;
+    white-space: nowrap;
+}
+
+.topo-device-add-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #4361ee;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    line-height: 1;
+    padding: 0;
+}
+
+.topo-device-add-btn:hover {
+    background: #4361ee;
+    color: #fff;
+    border-color: #4361ee;
+    transform: scale(1.1);
+}
+
+.topo-device-add-btn.added {
+    background: #22c55e;
+    color: #fff;
+    border-color: #22c55e;
+    cursor: default;
+    font-size: 12px;
+}
+.topo-device-add-btn.added:hover {
+    transform: none;
+    background: #22c55e;
+}
+
+/* ── Canvas Area ──────────────────────────────────────────────────────────── */
+.topo-canvas-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #fafbfc;
+}
+
+#topoCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block;
+}
+
+/* ── Zoom Display ─────────────────────────────────────────────────────────── */
+.topo-zoom-display {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.92);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #555;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e1e5eb;
+    z-index: 10;
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+}
+
+/* ── Canvas Controls ──────────────────────────────────────────────────────── */
+.topo-canvas-controls {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10;
+}
+
+.topo-ctrl-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid #e1e5eb;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 500;
+    color: #555;
+    transition: all 0.15s;
+    padding: 0;
+    line-height: 1;
+}
+
+.topo-ctrl-btn:hover {
+    background: #4361ee;
+    color: #fff;
+    border-color: #4361ee;
+    transform: scale(1.08);
+    box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
+}
+
+.topo-ctrl-btn:active {
+    transform: scale(0.95);
+}
+
+.topo-ctrl-btn i {
+    font-size: 13px;
+}
+
+/* ── Legend ───────────────────────────────────────────────────────────────── */
+.topo-legend {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid #e1e5eb;
+    border-radius: 8px;
+    padding: 8px 14px;
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    color: #555;
+    z-index: 10;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.topo-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.topo-legend-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* ── Empty-state Hint ─────────────────────────────────────────────────────── */
+.topo-hint {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #999;
+    font-size: 14px;
+    pointer-events: none;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.topo-hint p {
+    margin: 3px 0;
+    line-height: 1.6;
+}
+
+/* ── Canvas Notes ─────────────────────────────────────────────────────────── */
+.topo-canvas-note {
+    position: absolute;
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: #ffffcc;
+    border: 1px dashed #f59e0b;
+    cursor: move;
+    min-width: 100px;
+    min-height: 50px;
+    z-index: 8;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    font-size: 13px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow: hidden;
+    transition: box-shadow 0.15s;
+    user-select: none;
+}
+
+.topo-canvas-note:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.topo-canvas-note.selected {
+    box-shadow: 0 0 0 2px #4361ee;
+    border-style: solid;
+    border-color: #4361ee;
+}
+
+.topo-note-close {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 18px;
+    height: 18px;
+    background: #ef4444;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+    line-height: 1;
+    font-weight: 600;
+}
+
+.topo-canvas-note:hover .topo-note-close {
+    opacity: 1;
+}
+
+/* ── Context Menu (ensure compatibility) ──────────────────────────────────── */
+#contextMenu {
+    position: fixed;
+    background: #fff;
+    border: 1px solid #e1e5eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    min-width: 180px;
+    z-index: 500;
+    padding: 6px 0;
+    display: none;
+}
+
+.context-menu-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.1s;
+    white-space: nowrap;
+}
+
+.context-menu-item:hover {
+    background: #f0f4ff;
+    color: #4361ee;
+}
+
+.context-menu-item i {
+    width: 16px;
+    text-align: center;
+    font-size: 12px;
+}
+
+.context-menu-separator {
+    height: 1px;
+    background: #e1e5eb;
+    margin: 4px 0;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .topo-sidebar {
+        width: 260px;
+        min-width: 260px;
+    }
+    .topo-canvas-controls {
+        bottom: 10px;
+        right: 10px;
+        gap: 6px;
+    }
+    .topo-ctrl-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .topo-sidebar {
+        display: none;
+    }
+    .topo-legend {
+        display: none;
+    }
+}

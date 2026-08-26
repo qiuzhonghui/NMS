@@ -1,0 +1,493 @@
+/* ==========================================================================
+   NMS - Network Management System | rack.css
+   Rack View page: rack grid, rack frame visualization, device blocks
+   ========================================================================== */
+
+/* --- Rack Page Toolbar --- */
+.rack-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+    padding: var(--space-md) var(--space-lg);
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+}
+
+.rack-actions-left,
+.rack-actions-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.rack-actions .rack-count {
+    font-size: var(--font-size-sm);
+    color: var(--text-light);
+}
+
+.rack-actions .rack-count span {
+    font-weight: 600;
+    color: var(--text);
+}
+
+/* ==========================================================================
+   Rack Grid
+   ========================================================================== */
+
+.rack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: var(--space-lg);
+}
+
+/* Rack card wrapper */
+.rack-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: box-shadow var(--transition-normal), transform var(--transition-normal);
+}
+
+.rack-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+/* Rack card header */
+.rack-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--border-light);
+    background: var(--bg);
+}
+
+.rack-card-title {
+    font-weight: 600;
+    font-size: var(--font-size-md);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.rack-card-title i {
+    color: var(--primary);
+    font-size: var(--font-size-md);
+}
+
+.rack-card-meta {
+    font-size: var(--font-size-xs);
+    color: var(--text-light);
+}
+
+.rack-card-actions {
+    display: flex;
+    gap: 2px;
+}
+
+.rack-card-actions .btn {
+    padding: 4px 8px;
+    font-size: var(--font-size-xs);
+}
+
+/* ==========================================================================
+   Rack Frame (Front View with RU Markings)
+   ========================================================================== */
+
+.rack-frame {
+    position: relative;
+    padding: var(--space-sm) var(--space-sm) var(--space-sm) 0;
+    overflow-y: auto;
+    max-height: 520px;
+    background: #2c2c36;
+    border-bottom: 1px solid var(--border-light);
+}
+
+/* RU markings on the left side */
+.rack-frame::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 36px;
+    background: #24242e;
+    z-index: 0;
+}
+
+/* Individual RU slot */
+.rack-ru {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    height: 24px; /* each RU = ~24px at this scale */
+    margin-bottom: 1px;
+}
+
+/* RU number label */
+.rack-ru-label {
+    position: relative;
+    z-index: 1;
+    width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-family: var(--font-mono);
+    color: #666;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+/* Every 5th RU gets a more visible label */
+.rack-ru:nth-child(5n) .rack-ru-label {
+    color: #888;
+    font-size: 9px;
+    font-weight: 600;
+}
+
+/* RU slot background */
+.rack-ru-slot {
+    flex: 1;
+    background: #1e1e28;
+    border-radius: 1px;
+    position: relative;
+}
+
+/* Alternating subtle stripe for readability */
+.rack-ru:nth-child(even) .rack-ru-slot {
+    background: #1e1e2a;
+}
+
+/* Horizontal divider every 5 RU */
+.rack-ru:nth-child(5n) .rack-ru-slot {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Hover effect on empty slots */
+.rack-ru-empty:hover .rack-ru-slot {
+    background: #252535;
+    cursor: pointer;
+}
+
+/* ==========================================================================
+   Rack Device Block
+   ========================================================================== */
+
+.rack-device {
+    position: absolute;
+    left: 1px;
+    right: 1px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 600;
+    color: #ffffff;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 8px;
+    transition: filter var(--transition-fast), transform var(--transition-fast);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.rack-device:hover {
+    filter: brightness(1.15);
+    transform: scaleX(1.02);
+    z-index: 3;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Device type colors */
+.rack-device.type-router {
+    background: linear-gradient(135deg, #4361ee, #5e7af5);
+}
+
+.rack-device.type-switch {
+    background: linear-gradient(135deg, #148f77, #1abc9c);
+}
+
+.rack-device.type-firewall {
+    background: linear-gradient(135deg, #c0392b, #e74c3c);
+}
+
+.rack-device.type-server {
+    background: linear-gradient(135deg, #2471a3, #3498db);
+}
+
+.rack-device.type-ups {
+    background: linear-gradient(135deg, #c2185b, #e91e63);
+}
+
+.rack-device.type-storage {
+    background: linear-gradient(135deg, #7d3c98, #9b59b6);
+}
+
+.rack-device.type-patch-panel {
+    background: linear-gradient(135deg, #5d6d7e, #839192);
+}
+
+.rack-device.type-other,
+.rack-device.type-unknown {
+    background: linear-gradient(135deg, #5d6d7e, #95a5a6);
+}
+
+/* Label for 1U devices (too small for text inside) */
+.rack-device.tall-1u {
+    font-size: 8px;
+    letter-spacing: 0.3px;
+}
+
+/* Device status indicator dot */
+.rack-device-status {
+    position: absolute;
+    top: 3px;
+    right: 4px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+.rack-device-status.down {
+    background: var(--danger);
+}
+
+.rack-device-status.warning {
+    background: var(--warning);
+}
+
+/* ==========================================================================
+   Rack Detail / Full View (Modal or Dedicated Page)
+   ========================================================================== */
+
+.rack-detail {
+    display: flex;
+    gap: var(--space-lg);
+}
+
+/* Enlarged rack frame for detail view */
+.rack-frame-detail {
+    flex: 1;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: #2c2c36;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+}
+
+.rack-frame-detail .rack-ru {
+    height: 30px;
+}
+
+.rack-frame-detail .rack-ru-label {
+    width: 44px;
+    font-size: 10px;
+}
+
+.rack-frame-detail .rack-device {
+    font-size: 12px;
+}
+
+/* Rack info panel (beside the rack frame in detail view) */
+.rack-info-panel {
+    width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.rack-info-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+}
+
+.rack-info-card-header {
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--border-light);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.rack-info-card-body {
+    padding: var(--space-md);
+}
+
+.rack-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: var(--font-size-sm);
+}
+
+.rack-stat-label {
+    color: var(--text-light);
+}
+
+.rack-stat-value {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.rack-space-meter {
+    margin-top: var(--space-sm);
+}
+
+.rack-space-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--font-size-xs);
+    color: var(--text-light);
+    margin-bottom: 2px;
+}
+
+.rack-space-bar {
+    height: 6px;
+    background: var(--border-light);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.rack-space-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 3px;
+    transition: width var(--transition-normal);
+}
+
+.rack-space-fill.warning {
+    background: var(--warning);
+}
+
+.rack-space-fill.danger {
+    background: var(--danger);
+}
+
+/* Device list in rack info panel */
+.rack-device-list-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: var(--font-size-sm);
+}
+
+.rack-device-list-item:last-child {
+    border-bottom: none;
+}
+
+.rack-device-list-color {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.rack-device-list-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rack-device-list-ru {
+    font-size: var(--font-size-xs);
+    color: var(--text-light);
+    font-family: var(--font-mono);
+}
+
+/* ==========================================================================
+   Add/Edit Rack Form
+   ========================================================================== */
+
+.rack-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md);
+}
+
+.rack-form .full-width {
+    grid-column: 1 / -1;
+}
+
+.rack-form .ru-input {
+    font-family: var(--font-mono);
+}
+
+/* ==========================================================================
+   Drag and Drop (for adding devices to rack)
+   ========================================================================== */
+
+.rack-ru-slot.drop-target {
+    background: rgba(67, 97, 238, 0.2) !important;
+    outline: 2px dashed var(--primary);
+    outline-offset: -2px;
+    z-index: 1;
+}
+
+.rack-ru-slot.drop-invalid {
+    background: rgba(231, 76, 60, 0.15) !important;
+    outline: 2px dashed var(--danger);
+    outline-offset: -2px;
+}
+
+.rack-device.dragging {
+    opacity: 0.6;
+    filter: blur(1px);
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+    .rack-detail {
+        flex-direction: column;
+    }
+
+    .rack-info-panel {
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .rack-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rack-form {
+        grid-template-columns: 1fr;
+    }
+
+    .rack-frame {
+        max-height: 400px;
+    }
+
+    .rack-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

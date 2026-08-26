@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NMS - Network Management System</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌐</text></svg>">
+    <!-- Chart.js (bootcdn mirror, fast in China) -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+    // Fallback: if bootcdn is unreachable after 5s, load from alternative CDN
+    (function(){
+        setTimeout(function(){
+            if (typeof Chart === 'undefined') {
+                var s = document.createElement('script');
+                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
+                document.head.appendChild(s);
+            }
+            if (!document.querySelector('link[href*="font-awesome"]').sheet) {
+                var l = document.createElement('link');
+                l.rel = 'stylesheet';
+                l.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css';
+                document.head.appendChild(l);
+            }
+        }, 5000);
+    })();
+    </script>
+    <!-- Styles -->
+    <link rel="stylesheet" href="/static/css/main.css?v=1.2.89">
+    <link rel="stylesheet" href="/static/css/dashboard.css?v=1.2.89">
+    <link rel="stylesheet" href="/static/css/discovery.css?v=1.2.89">
+    <link rel="stylesheet" href="/static/css/topology.css?v=1.2.89">
+    <link rel="stylesheet" href="/static/css/rack.css?v=1.2.89">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h1 class="sidebar-logo">🌐 NMS</h1>
+            <span class="sidebar-subtitle">Network Management</span>
+        </div>
+        <ul class="sidebar-nav">
+            <li><a href="#/" class="nav-item active" data-page="dashboard">
+                <i class="fas fa-tachometer-alt"></i> <span data-i18n="dashboard">Dashboard</span>
+            </a></li>
+            <li><a href="#/discovery" class="nav-item" data-page="discovery">
+                <i class="fas fa-search"></i> <span data-i18n="device_discovery">Device Discovery</span>
+            </a></li>
+            <!-- Devices sub-menu -->
+            <li class="nav-group" id="navGroupDevices">
+                <a href="javascript:void(0)" class="nav-item nav-parent">
+                    <i class="fas fa-server"></i> <span data-i18n="device_mgmt">Device Mgmt</span>
+                </a>
+                <ul class="nav-sub" id="subDevices">
+                    <li><a href="#/devices" class="nav-item nav-sub-item" data-page="devices">
+                        <span data-i18n="device_list">Device List</span>
+                    </a></li>
+                    <li><a href="#/device-models" class="nav-item nav-sub-item" data-page="device-models">
+                        <span data-i18n="device_models_title">Device Models</span>
+                    </a></li>
+                    <li><a href="#/device-types" class="nav-item nav-sub-item" data-page="device-types">
+                        <span data-i18n="device_types_custom">Device Types</span>
+                    </a></li>
+                </ul>
+            </li>
+            <li><a href="#/topology" class="nav-item" data-page="topology">
+                <i class="fas fa-project-diagram"></i> <span data-i18n="topology">Topology</span>
+            </a></li>
+            <li><a href="#/racks" class="nav-item" data-page="racks">
+                <i class="fas fa-grip-vertical"></i> <span data-i18n="rack_view">Rack View</span>
+            </a></li>
+            <!-- Monitoring Mgmt sub-menu -->
+            <li class="nav-group" id="navGroupMonitoring">
+                <a href="javascript:void(0)" class="nav-item nav-parent">
+                    <i class="fas fa-heartbeat"></i> <span data-i18n="monitoring_mgmt">Monitoring</span>
+                </a>
+                <ul class="nav-sub" id="subMonitoring">
+                    <li><a href="#/snmp-templates" class="nav-item nav-sub-item" data-page="snmp-templates">
+                        <span data-i18n="snmp_templates">SNMP Templates</span>
+                    </a></li>
+                    <li><a href="#/mib-manager" class="nav-item nav-sub-item" data-page="mib-manager">
+                        <span data-i18n="mib_mgmt">MIB Management</span>
+                    </a></li>
+                    <li><a href="#/zabbix-templates" class="nav-item nav-sub-item" data-page="zabbix-templates">
+                        <span data-i18n="zabbix_templates">Zabbix Templates</span>
+                    </a></li>
+                </ul>
+            </li>
+            <li><a href="#/alerts" class="nav-item" data-page="alerts">
+                <i class="fas fa-bell"></i> <span data-i18n="alerts">Alerts</span>
+            </a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="#/settings" class="nav-item" data-page="settings" style="margin-bottom:4px;font-size:12px;padding:6px 10px;">
+                <i class="fas fa-cog"></i> <span data-i18n="settings">Settings</span>
+            </a>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span class="ws-status" id="wsStatus">● Disconnected</span>
+                <span class="sidebar-version" id="sidebarVersion" style="font-size:11px;color:rgba(255,255,255,0.5);cursor:pointer;text-decoration:underline;" onclick="App.checkUpdate()" title="Check for update">v-</span>
+            </div>
+            <div class="lang-switch" onclick="I18N.toggle();App.route();" title="切换语言 / Switch Language">
+                <span class="lang-option" id="langZh">中</span>
+                <span class="lang-divider">/</span>
+                <span class="lang-option" id="langEn">EN</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        <div id="pageContainer"></div>
+    </main>
+
+    <!-- Context Menu (hidden by default) -->
+    <div class="context-menu" id="contextMenu" style="display:none;">
+        <div class="context-menu-item" data-action="edit"><i class="fas fa-edit"></i> Edit</div>
+        <div class="context-menu-item" data-action="delete"><i class="fas fa-trash"></i> Delete</div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" data-action="ssh"><i class="fas fa-terminal"></i> SSH</div>
+        <div class="context-menu-item" data-action="rdp"><i class="fas fa-desktop"></i> RDP</div>
+        <div class="context-menu-item" data-action="web"><i class="fas fa-globe"></i> Web</div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" data-action="dashboard"><i class="fas fa-chart-line"></i> Dashboard</div>
+    </div>
+
+    <!-- Modal Container -->
+    <div class="modal-overlay" id="modalOverlay" style="display:none;">
+        <div class="modal-box" id="modalBox"></div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Version-based cache busting: change ?v= on deploy to force reload -->
+    <script src="/static/js/i18n.js?v=1.2.89"></script>
+    <script src="/static/js/utils/format.js?v=1.2.89"></script>
+    <script src="/static/js/utils/constants.js?v=1.2.89"></script>
+    <script src="/static/js/utils/table-resize.js?v=1.2.89"></script>
+    <script src="/static/js/websocket.js?v=1.2.89"></script>
+    <script src="/static/js/api.js?v=1.2.89"></script>
+    <script src="/static/js/components/context-menu.js?v=1.2.89"></script>
+    <script src="/static/js/components/front-panel.js?v=1.2.89"></script>
+    <script src="/static/js/components/rack-view.js?v=1.2.89"></script>
+    <script src="/static/js/pages/dashboard.js?v=1.2.89"></script>
+    <script src="/static/js/pages/add-device.js?v=1.2.89"></script>
+    <script src="/static/js/pages/device-models.js?v=1.2.89"></script>
+    <script src="/static/js/pages/device-types.js?v=1.2.89"></script>
+    <script src="/static/js/pages/snmp-templates.js?v=1.2.89"></script>
+    <script src="/static/js/pages/mib-manager.js?v=1.2.89"></script>
+    <script src="/static/js/pages/zabbix-templates.js?v=1.2.89"></script>
+    <script src="/static/js/pages/settings-page.js?v=1.2.89"></script>
+    <script src="/static/js/pages/discovery.js?v=1.2.89"></script>
+    <script src="/static/js/pages/devices.js?v=1.2.89"></script>
+    <script src="/static/js/pages/device-detail.js?v=1.2.89"></script>
+    <script src="/static/js/pages/topology.js?v=1.2.89"></script>
+    <script src="/static/js/pages/racks.js?v=1.2.89"></script>
+    <script src="/static/js/pages/alerts.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
