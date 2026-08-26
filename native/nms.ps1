@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     NMS - Network Management System
     All-in-One Management Script (Install / Uninstall / Upgrade / Status)
@@ -36,7 +36,13 @@ $DbPort     = 3306
 $DbName     = "nms"
 $DbUser     = "nms"
 $DbPassword = ""
-$CurrentVersion = "1.0.0"
+# 从项目 VERSION 文件读取当前版本(git 驱动,由 gen_version.py 生成)
+$VersionPath = Join-Path $ProjectDir "VERSION"
+if (Test-Path $VersionPath) {
+    $CurrentVersion = (Get-Content $VersionPath -TotalCount 1).Trim()
+} else {
+    $CurrentVersion = "1.0.0"
+}
 $VersionFile = Join-Path $InstallDir ".version"
 
 # ── Helpers ─────────────────────────────────────────────────────────────────

@@ -37,11 +37,16 @@ echo "server=$TARGET" > "$CONFIG_FILE"
 echo "path=$TARGET_PATH" >> "$CONFIG_FILE"
 echo "Auto-saving to $CONFIG_FILE"
 
-# ── Read VERSION ─────────────────────────────────────────────────────────────
+# ── Read VERSION (regenerate from git if source is a git repo) ─────────────
 VER_FILE="$PROJECT_DIR/VERSION"
 if [ ! -f "$VER_FILE" ]; then
     echo "ERROR: VERSION file not found. Run: python3 native/gen_version.py"
     exit 1
+fi
+
+# Regenerate git-derived VERSION before pushing
+if [ -d "$PROJECT_DIR/.git" ] && command -v git &>/dev/null && command -v python3 &>/dev/null; then
+    ( cd "$PROJECT_DIR" && python3 native/gen_version.py >/dev/null 2>&1 || true )
 fi
 
 VERSION=$(head -1 "$VER_FILE" | tr -d '\r')
@@ -50,24 +55,29 @@ echo "=== NMS Push v$VERSION ==="
 echo "Target: $TARGET:$TARGET_PATH"
 echo ""
 
-# ── Find changed files ───────────────────────────────────────────────────────
+# ── Find changed files (git-driven; manifest fallback without git) ─────────
 CHANGED=()
-while IFS= read -r line; do
-    if [[ "$line" =~ ^[0-9a-f]{32}\ [0-9a-f]{32}\  ]]; then
-        cur="${line:0:32}"
-        prev="${line:33:32}"
-        fpath="${line:66}"
-        if [ "$cur" != "$prev" ] || [ "$prev" = "new" ]; then
-            src="$PROJECT_DIR/$fpath"
-            if [ -f "$src" ]; then
-                actual=$(md5sum "$src" 2>/dev/null | awk '{print $1}')
-                if [ "$actual" = "$cur" ]; then
-                    CHANGED+=("$fpath")
-                fi
-            fi
-        fi
+if [ -d "$PROJECT_DIR/.git" ] && command -v git &>/dev/null; then
+    # Committed changes since the most recent tag
+    BASE_REF=$(cd "$PROJECT_DIR" && git describe --tags --abbrev=0 2>/dev/null || true)
+    if [ -n "$BASE_REF" ]; then
+        while IFS= read -r f; do
+            [ -n "$f" ] && CHANGED+=("$f")
+        done < <(cd "$PROJECT_DIR" && git diff --name-only "$BASE_REF" -- backend frontend native)
     fi
-done < "$VER_FILE"
+    # Uncommitted working-tree changes
+    while IFS= read -r f; do
+        [ -n "$f" ] && CHANGED+=("$f")
+    done < <(cd "$PROJECT_DIR" && git status --porcelain -- backend frontend native | sed 's/^...//')
+else
+    # No git: push every file present in the manifest
+    while IFS= read -r line; do
+        [[ "$line" =~ ^[0-9a-f]{32}\  ]] && CHANGED+=("${line:34}")
+    done < "$VER_FILE"
+fi
+
+# Deduplicate and exclude VERSION (uploaded separately)
+CHANGED=($(printf "%s\n" "${CHANGED[@]}" | grep -v "^VERSION$" | sort -u))
 
 if [ ${#CHANGED[@]} -eq 0 ]; then
     echo "No changed files. Nothing to push."
