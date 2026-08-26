@@ -10,6 +10,7 @@ This guide covers installing NMS directly on Linux or Windows without Docker.
 - [Manual Installation (Windows)](#manual-installation-windows)
 - [Post-Installation](#post-installation)
 - [Production Hardening](#production-hardening)
+- [Version Management (Git)](#version-management-git)
 - [Upgrading](#upgrading)
 - [Troubleshooting](#troubleshooting)
 
@@ -462,9 +463,57 @@ ExecStart=/opt/nms/venv/bin/uvicorn app.main:app --host ${HOST} --port ${PORT} -
 
 ---
 
+## Version Management (Git)
+
+Since v1.2.89 the project source is a **Git repository**. The `VERSION` file is
+**generated**, not hand-edited:
+
+| What | Who generates it | Why |
+|---|---|---|
+| Version number | `native/gen_version.py` from git tags/commits | release version == git tag |
+| `VERSION` manifest | `gen_version.py` via `git ls-files` | integrity check for deploy |
+| `index.html` cache buster | `gen_version.py` | forces browser refresh on new build |
+
+### Version number rules
+
+- Exactly on a tag `v1.2.90`  → `1.2.90`
+- N commits after a tag       → `1.2.90.devN`
+- No tag at all              → `0.0.<commit_count>`
+- No git available           → legacy manual patch bump
+
+### Release workflow
+
+```bash
+git add -A && git commit -m "feat: ..."
+git tag v1.2.90
+python3 native/gen_version.py            # writes VERSION + index.html ?v=
+git add VERSION frontend/index.html && git commit -m "chore: release v1.2.90"
+```
+
+### Deploy / Upgrade (git-aware)
+
+`native/nms.sh deploy` regenerates the version manifest from git **before** the
+integrity check, so you don't have to run `gen_version.py` manually. When the
+source directory is a git repository, `nms.sh update` will `git pull` first.
+
+```bash
+sudo bash native/nms.sh deploy   # sync source → /opt/nms (git-aware)
+sudo bash native/nms.sh update   # git pull + deploy (if source is a git repo)
+```
+
+`native/push.sh` (developer machine → server) also regenerates the manifest and
+detects changed files via git before uploading.
+
+---
+
 ## Upgrading
 
-### Linux
+> **Recommended**: use the management script instead of manual copying —
+> `sudo bash native/nms.sh update` (git repo) or `sudo bash native/nms.sh deploy`.
+> It regenerates the version manifest, runs DB migration, updates dependencies,
+> and restarts the service automatically.
+
+### Linux (manual alternative)
 
 ```bash
 # 1. Stop the service

@@ -91,6 +91,35 @@ sudo bash native/nms.sh verify       # Check deployment integrity
 
 See the [Native Deployment Guide](native/NATIVE_DEPLOYMENT.md) for detailed instructions.
 
+## Version Control (Git)
+
+Since v1.2.89 the project is versioned with **Git** — the version number and the
+deployment manifest (`VERSION`) are derived from the repository state:
+
+- **Version source** ([native/gen_version.py](native/gen_version.py)): from a
+  git tag (`v1.2.89` → `1.2.89`), from commits after a tag
+  (`v1.2.89-3-gabc123` → `1.2.89.dev3`), or from commit count when no tag exists.
+- **Tracked files** for the manifest are auto-discovered via `git ls-files`
+  (no manual list to maintain).
+- **Deploy/upgrade scripts** are git-aware: `nms.sh deploy` regenerates the
+  version manifest from git before the integrity check; `nms.sh update` prefers
+  `git pull` when the source is a git repository.
+
+Typical release workflow:
+
+```bash
+# 1. Commit your changes
+git add -A && git commit -m "feat: ..."
+
+# 2. Tag a release, then regenerate the version manifest
+git tag v1.2.90
+python3 native/gen_version.py          # VERSION + frontend cache buster updated
+git add VERSION frontend/index.html && git commit -m "chore: release v1.2.90"
+
+# 3. Deploy (regenerates manifest automatically, syncs to /opt/nms)
+sudo bash native/nms.sh deploy
+```
+
 ## Manual Installation
 
 ### Prerequisites
