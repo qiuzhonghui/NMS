@@ -155,12 +155,17 @@ def git_derived_version() -> str | None:
 
 
 def tracked_files() -> list[str] | None:
-    """git ls-files -> manifest file list (None if git unavailable)."""
+    """git ls-files -> manifest file list (None if git unavailable).
+
+    Only deployment-relevant paths are included so the manifest doubles as the
+    deploy checklist (backend / frontend / native / VERSION).
+    """
     out = _git("ls-files")
     if out is None:
         return None
     files = [f for f in out.split("\n") if f.strip()]
-    return [f for f in files if f not in MANIFEST_EXCLUDE]
+    deploy = [f for f in files if f not in MANIFEST_EXCLUDE]
+    return [f for f in deploy if f.startswith(("backend/", "frontend/", "native/", "VERSION"))]
 
 
 def manual_bump(old_ver: str) -> str:
