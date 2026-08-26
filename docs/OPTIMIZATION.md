@@ -31,7 +31,7 @@
 
 > 本表记录代码级优化已落地项与明确暂缓项。**所有改动已通过 `python -m compileall` 全仓语法验证 + AST 未定义名检查 + 删除符号残留引用核对。** 由于本环境无法安装依赖/连 MySQL,逻辑正确性依赖等价重构与代码审查,上线前建议在真实环境跑一次 `pytest`/冒烟。
 
-### ✅ 已落地(30 项)
+### ✅ 已落地(33 项)
 
 | 编号 | 文件 | 改动 |
 |---|---|---|
@@ -52,6 +52,9 @@
 | FE-1 | 前端 12 文件 | `_esc`/`_escape`(182 处)统一为 `Format.esc`,删除 13 个本地重复定义 |
 | FE-2 | frontend/js/app.js | `App.showModal` 增强:支持自定义 footer / saveLabel / cancelLabel(向后兼容) |
 | FE-4 | frontend/components/settings.js | 删除无引用的死代码 `SettingsDialog`(功能已由 settings-page.js 覆盖)+ 移除其 script 标签 |
+| ENG-1 | backend/pyproject.toml + 全仓 | **ruff + mypy + pytest 落地**:ruff 自动修复 374 项 + 人工修 F601/E722/B007/E712/F841;mypy 通过 13 个纯逻辑模块;新增 `tests/`(26 项) |
+| DB-2 | services/retention.py + main.py | **数据保留策略**:新增 retention 服务,每天分批清理过期指标(`METRICS_RETENTION_DAYS` 首次生效);mock 测试覆盖 |
+| DB-3 | models/metrics.py + alert.py | **索引**:DeviceMetric 加 `(device_id, metric_name, collected_at)`;Alert.alert_rule_id 加 index |
 
 > **自动验证(2026-08-26,真实 SQL 执行)**:安装依赖后,用 SQLite 内存库建表 + 插入测试数据,直接调用上述 handler 做了 18 项断言(设备列表最新值/分页、metrics 去重取最新、rack selectinload、面板批量、模板 GROUP BY 计数、MIB 批量、dashboard 聚合、topology)——**18/18 全部通过**。验证脚本已清理,不残留。
 >
@@ -81,8 +84,9 @@
 | 性能-4 | snmp_templates 前端 UI 分页 | devices/alerts/discovery 已加可选分页,`list_templates` N+1 已修;前端 UI 分页仍需专项(见 §6) |
 | FEAT-1/2/4 | 拓扑 CDP/LLDP 端口解析、接口采集恢复、profile 匹配 | 需真实网络设备验证,建议后续专项 |
 | FEAT-3 | Web 采集器 | 模型已定义但无采集引擎,需确认优先级 |
-| DB-1~4 | Alembic 迁移、保留策略、索引、tags | 需数据库环境 + 迁移测试 |
-| ENG-1 | ruff/mypy/pytest | 依赖已装,`pyproject.toml` 配置建议后续落地(§1) |
+| DB-1 | Alembic 迁移(替代 create_all) | 需数据库环境 + 迁移测试;模型改动已含新索引,已有库需迁移生效 |
+| DB-4 | `Device.tags` JSON 语义(dict vs array) | 待统一语义(见 §8) |
+| ENG-1 补充 | mypy 覆盖 routers/models、ruff 剩余简化项 | 过渡期仅检查纯逻辑模块(follow_imports=skip),逐步扩展 |
 | FE-3/5/6 | 前端 UI 辅助组件、状态收拢、ES modules | FE-3/5/6 待办;建议分阶段、每步浏览器回归 |
 | — | snmp_templates `save_results` 逐条 DELETE+INSERT 批量 | 批量 DELETE IN 会改变「同 oid 只留最后一条」的语义,收益低风险高,不动 |
 | — | snmp_templates 函数内重复 import(205-206) | 无害冗余,删除需同步改 `_json` 引用,低价值 |
