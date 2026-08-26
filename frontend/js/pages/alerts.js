@@ -191,7 +191,7 @@ const AlertsPage = {
     },
 
     async deleteRule(ruleId) {
-        if (!confirm('Delete this alert rule?')) return;
+        if (!UI.confirmDelete('Delete this alert rule?')) return;
         try {
             await API.deleteAlertRule(ruleId);
             App.toast('Alert rule deleted', 'info');
