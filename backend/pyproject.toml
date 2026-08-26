@@ -1,0 +1,53 @@
+# 后端工程化配置:ruff(静态检查/格式)+ mypy(类型检查)+ pytest
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+# E: pycodestyle  W: pycodestyle warning  F: pyflakes
+# B: bugbear  I: isort  UP: pyupgrade  SIM: simplify
+select = ["E", "F", "W", "B", "I", "UP", "SIM"]
+ignore = [
+  "B008",   # FastAPI Depends(…) 出现在函数默认值中,这是 FastAPI 惯用法
+  "B023",   # icmp_monitor 闭包捕获的 sem 是循环外变量(误报)
+  "B904",   # HTTPException 场景有意不暴露内部 traceback
+  "B905",   # zip strict:长度不一致时不应抛错
+  "E402",   # 函数内 import(FastAPI 惰性 import / 防循环依赖)
+  "E501",   # 行宽 100 内尽量遵守,历史长行先放过
+  "E701",   # 单行多语句(项目紧凑风格:`if not x: raise`)
+  "E702",   # 单行分号
+  "E731",   # lambda 赋值(风格)
+  "SIM105", "SIM110", "SIM113", "SIM116", "SIM117", "SIM401",  # 简化建议(风格)
+  "SIM108", # 不强制 if/else 改三元
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.lint.per-file-ignores]
+# SQLAlchemy relationship 使用字符串前向引用("ClassName"),ruff 无法静态解析
+"app/models/*.py" = ["F821"]
+# 模块加载时调用文件下方定义的 start_refresh(启动后台刷新)
+"app/services/zabbix_repo.py" = ["F821"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_configs = true
+# 过渡期:只检查纯逻辑模块。follow_imports=skip 避免递归检查 routers/models。
+follow_imports = "skip"
+files = [
+    "app/utils/",
+    "app/services/snmp.py",
+    "app/services/scanner.py",
+    "app/services/zabbix_converter.py",
+    "app/services/zabbix_repo.py",
+    "app/services/alert_engine.py",
+    "app/services/icmp_monitor.py",
+    "app/services/topology_discovery.py",
+    "app/services/snmp_collector.py",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

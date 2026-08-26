@@ -8,11 +8,9 @@ Handles the full Zabbix 7.0 export format including:
 """
 import json
 from dataclasses import dataclass, field
-from typing import Optional
 
 import yaml
 from loguru import logger
-
 
 # ── Intermediate data structures ──────────────────────────────────────────
 

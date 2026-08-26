@@ -1,10 +1,9 @@
 """CIDR and IP range parsing utilities for network discovery."""
 import ipaddress
 import re
-from typing import List
 
 
-def parse_network_ranges(ranges: List[str]) -> List[str]:
+def parse_network_ranges(ranges: list[str]) -> list[str]:
     """Parse a list of network range strings into individual IP addresses.
 
     Supports:
@@ -15,7 +14,7 @@ def parse_network_ranges(ranges: List[str]) -> List[str]:
 
     Returns a deduplicated list of IP address strings.
     """
-    all_ips: List[str] = []
+    all_ips: list[str] = []
 
     # Precompiled once: "192.168.1.1-50" or "192.168.1.1-192.168.1.50"
     range_pattern = re.compile(
@@ -31,12 +30,12 @@ def parse_network_ranges(ranges: List[str]) -> List[str]:
         if "/" in entry and "-" not in entry:
             try:
                 net = ipaddress.ip_network(entry, strict=False)
-                for ip in net.hosts():
-                    all_ips.append(str(ip))
+                for host_ip in net.hosts():
+                    all_ips.append(str(host_ip))
                 # Include network and broadcast for /31 and smaller
                 if net.prefixlen >= 31:
-                    for ip in net:
-                        all_ips.append(str(ip))
+                    for net_ip in net:
+                        all_ips.append(str(net_ip))
                 continue
             except ValueError:
                 pass
@@ -75,18 +74,18 @@ def parse_network_ranges(ranges: List[str]) -> List[str]:
 
         # Try single IP
         try:
-            ip = ipaddress.IPv4Address(entry)
-            all_ips.append(str(ip))
+            single = ipaddress.IPv4Address(entry)
+            all_ips.append(str(single))
         except ipaddress.AddressValueError:
             continue
 
     # Deduplicate while preserving order
     seen = set()
     result = []
-    for ip in all_ips:
-        if ip not in seen:
-            seen.add(ip)
-            result.append(ip)
+    for addr in all_ips:
+        if addr not in seen:
+            seen.add(addr)
+            result.append(addr)
     return result
 
 

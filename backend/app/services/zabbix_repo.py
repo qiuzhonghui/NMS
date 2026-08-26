@@ -152,14 +152,8 @@ def _load_cache():
         logger.warning(f"Failed to load Zabbix cache: {e}")
         _cache = {"data": None, "fetched_at": 0}
 
-# Load persisted cache on module import — auto-scan if empty
+# Load persisted cache on module import
 _load_cache()
-if _cache["data"] is None:
-    import asyncio as _aio
-    try:
-        _aio.ensure_future(start_refresh())
-    except Exception:
-        pass
 
 
 # ── HTTP ───────────────────────────────────────────────────────────────────
@@ -179,7 +173,7 @@ async def _fetch_all_root() -> list[str]:
                 f"/repos/{ZABBIX_REPO}/files/templates"
                 f"?at={ZABBIX_BRANCH.replace('/', '%2F')}")
 
-    all_items = []
+    all_items: list[str] = []
     start_param = None
     page = 0
 
@@ -237,6 +231,8 @@ async def _build_file_tree() -> dict[str, list[dict]]:
     This replaces recursive subdirectory scanning entirely.
     """
     global _scan_progress
+    # _build_file_tree 依赖调用方先初始化 _scan_progress(见 _do_refresh)
+    assert _scan_progress is not None
 
     _clear_logs()
     _add_log("info", f"代理: {_proxy_url or '直连'} | 目标: {ZABBIX_BASE}")
@@ -334,12 +330,16 @@ def get_scan_progress() -> dict:
 
 
 async def get_template_list(force_refresh: bool = False) -> dict[str, list[dict]]:
-    """Return cached file tree. Only refreshes when force_refresh=True."""
+    """Return cached file tree. Refreshes on demand when the cache is empty.
+
+    (Cache-auto-refresh on module import was removed: it ran without a live
+    event loop, so the refresh task never actually executed.)
+    """
     global _cache
-    if force_refresh:
+    if force_refresh or not _cache["data"]:
         await start_refresh()
         return _cache["data"] if _cache["data"] else {}
-    return _cache["data"] if _cache["data"] else {}
+    return _cache["data"]
 
 
 async def fetch_template_yaml(path: str) -> str:

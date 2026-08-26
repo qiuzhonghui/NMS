@@ -1,7 +1,7 @@
 """WebSocket connection manager with pub/sub for real-time updates."""
-import json
 import asyncio
-from typing import Any, Dict, Set
+import json
+from typing import Any
 
 from fastapi import WebSocket
 from loguru import logger
@@ -12,7 +12,7 @@ class WebSocketManager:
 
     def __init__(self) -> None:
         # All active connections: websocket -> set of subscribed device IDs
-        self._connections: Dict[WebSocket, Set[str]] = {}
+        self._connections: dict[WebSocket, set[str]] = {}
         self._lock: asyncio.Lock = asyncio.Lock()
 
     async def connect(self, ws: WebSocket) -> None:
@@ -40,7 +40,7 @@ class WebSocketManager:
             if ws in self._connections:
                 self._connections[ws].discard(device_id)
 
-    async def send_personal(self, ws: WebSocket, data: Dict[str, Any]) -> None:
+    async def send_personal(self, ws: WebSocket, data: dict[str, Any]) -> None:
         """Send a message to a specific client."""
         try:
             await ws.send_text(json.dumps(data))
@@ -48,7 +48,7 @@ class WebSocketManager:
             logger.error(f"WS send error: {e}")
             await self.disconnect(ws)
 
-    async def broadcast(self, event: str, payload: Dict[str, Any]) -> None:
+    async def broadcast(self, event: str, payload: dict[str, Any]) -> None:
         """Broadcast a message to ALL connected clients."""
         message = json.dumps({"event": event, **payload})
         async with self._lock:
@@ -62,7 +62,7 @@ class WebSocketManager:
                 await self.disconnect(ws)
 
     async def broadcast_to_subscribers(
-        self, device_id: str, event: str, payload: Dict[str, Any]
+        self, device_id: str, event: str, payload: dict[str, Any]
     ) -> None:
         """Send a message to all clients subscribed to a specific device."""
         message = json.dumps({"event": event, "device_id": device_id, **payload})

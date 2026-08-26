@@ -1,16 +1,15 @@
 """Device management API routes."""
-from typing import Optional
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, update, func
 
 from ..database import get_session
 from ..models.device import Device
-from ..models.device_template import DeviceModel, TemplateItem, MibFile
-from ..models.metrics import DeviceInterface, InterfaceMetric, DeviceMetric
+from ..models.device_template import DeviceModel, MibFile, TemplateItem
+from ..models.metrics import DeviceInterface, DeviceMetric
 from ..services.snmp import snmp_get, snmp_walk
-import re
 
 # Zabbix IF-MIB key patterns → SNMP OID prefix mapping
 _ZABBIX_IF_KEY_MAP = {
@@ -140,36 +139,37 @@ def _parse_zabbix_key(oid_or_key: str) -> dict:
     return {'type': 'skip', 'oid': None}
 
 
-from ..websocket import ws_manager
 from pydantic import BaseModel
+
+from ..websocket import ws_manager
 
 router = APIRouter(prefix="/devices", tags=["devices"])
 
 
 class DeviceUpdate(BaseModel):
-    name: Optional[str] = None
-    ip_address: Optional[str] = None
-    device_type: Optional[str] = None
-    vendor: Optional[str] = None
-    model: Optional[str] = None
-    model_id: Optional[str] = None
-    snmp_enabled: Optional[bool] = None
-    snmp_version: Optional[str] = None
-    snmp_community: Optional[str] = None
-    snmp_port: Optional[int] = None
-    ssh_port: Optional[int] = None
-    rdp_port: Optional[int] = None
-    web_port: Optional[int] = None
-    front_panel_id: Optional[str] = None
-    tags: Optional[dict] = None
-    protocol: Optional[str] = None
-    template_id: Optional[str] = None
-    snmp_template_id: Optional[str] = None
-    mib_file_id: Optional[str] = None
-    cisco_list_id: Optional[str] = None
-    zabbix_template_id: Optional[str] = None
-    agent_port: Optional[int] = None
-    monitoring_interval: Optional[int] = None
+    name: str | None = None
+    ip_address: str | None = None
+    device_type: str | None = None
+    vendor: str | None = None
+    model: str | None = None
+    model_id: str | None = None
+    snmp_enabled: bool | None = None
+    snmp_version: str | None = None
+    snmp_community: str | None = None
+    snmp_port: int | None = None
+    ssh_port: int | None = None
+    rdp_port: int | None = None
+    web_port: int | None = None
+    front_panel_id: str | None = None
+    tags: dict | None = None
+    protocol: str | None = None
+    template_id: str | None = None
+    snmp_template_id: str | None = None
+    mib_file_id: str | None = None
+    cisco_list_id: str | None = None
+    zabbix_template_id: str | None = None
+    agent_port: int | None = None
+    monitoring_interval: int | None = None
 
 
 class ManualAddDevice(BaseModel):
@@ -178,17 +178,17 @@ class ManualAddDevice(BaseModel):
     ip_address: str
     protocol: str = "snmp"           # snmp / icmp / agent / web
     device_type: str = "other"
-    model_id: Optional[str] = None
-    template_id: Optional[str] = None
-    vendor: Optional[str] = None
-    model_name: Optional[str] = None
+    model_id: str | None = None
+    template_id: str | None = None
+    vendor: str | None = None
+    model_name: str | None = None
     snmp_version: str = "2c"
     snmp_community: str = "public"
     snmp_port: int = 161
     snmp_enabled: bool = True
     agent_port: int = 9090
-    ssh_port: Optional[int] = None
-    web_port: Optional[int] = None
+    ssh_port: int | None = None
+    web_port: int | None = None
     monitoring_interval: int = 60
 
 
@@ -240,7 +240,7 @@ async def manual_add_device(
         items = await session.execute(
             select(TemplateItem).where(
                 TemplateItem.template_id == data.template_id,
-                TemplateItem.enabled == True,
+                TemplateItem.enabled.is_(True),
             )
         )
         items = items.scalars().all()
@@ -260,11 +260,11 @@ async def manual_add_device(
 
 @router.get("")
 async def list_devices(
-    device_type: Optional[str] = Query(None),
-    status: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
-    limit: Optional[int] = Query(None, ge=1, le=1000),
-    offset: Optional[int] = Query(None, ge=0),
+    device_type: str | None = Query(None),
+    status: str | None = Query(None),
+    search: str | None = Query(None),
+    limit: int | None = Query(None, ge=1, le=1000),
+    offset: int | None = Query(None, ge=0),
     session: AsyncSession = Depends(get_session),
 ):
     """List all managed devices with optional filters.
@@ -463,10 +463,10 @@ async def delete_device(
 @router.get("/{device_id}/metrics")
 async def get_device_metrics(
     device_id: str,
-    metric_type: Optional[str] = Query(None),
-    metric_name: Optional[str] = Query(None),
-    from_time: Optional[str] = Query(None),
-    to_time: Optional[str] = Query(None),
+    metric_type: str | None = Query(None),
+    metric_name: str | None = Query(None),
+    from_time: str | None = Query(None),
+    to_time: str | None = Query(None),
     limit: int = Query(100, le=1000),
     session: AsyncSession = Depends(get_session),
 ):

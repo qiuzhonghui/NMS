@@ -1,8 +1,7 @@
 """Metric and Interface models for time-series data."""
 from datetime import datetime
-from typing import Optional
 
-from sqlalchemy import String, DateTime, Integer, Float, ForeignKey, Text, Index
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..database import Base
@@ -46,14 +45,14 @@ class DeviceInterface(Base):
         String(32), ForeignKey("devices.id", ondelete="CASCADE"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    if_index: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    if_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    mac_address: Mapped[Optional[str]] = mapped_column(String(17), nullable=True)
-    speed: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, comment="bps")
+    if_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    if_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    mac_address: Mapped[str | None] = mapped_column(String(17), nullable=True)
+    speed: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="bps")
     status: Mapped[str] = mapped_column(String(10), default="unknown",
                                          comment="up, down, unknown")
-    alias: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    last_change: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    alias: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    last_change: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # Relationship
     device: Mapped["Device"] = relationship("Device", back_populates="interfaces")
@@ -72,12 +71,12 @@ class InterfaceMetric(Base):
         String(32), ForeignKey("device_interfaces.id", ondelete="CASCADE"),
         nullable=False, index=True
     )
-    in_octets: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    out_octets: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    in_errors: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    out_errors: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    in_discards: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    out_discards: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    in_octets: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    out_octets: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    in_errors: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    out_errors: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    in_discards: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    out_discards: Mapped[int | None] = mapped_column(Integer, nullable=True)
     collected_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
     # Relationship

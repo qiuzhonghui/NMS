@@ -1,10 +1,15 @@
 """Device model definitions and monitoring templates."""
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
 
 from sqlalchemy import (
-    String, Boolean, DateTime, Integer, JSON, ForeignKey, Text,
-    Enum as SAEnum,
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,24 +33,24 @@ class DeviceModel(Base):
         String(50), nullable=False, default="network",
         comment="network, server, custom"
     )
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    snmp_profile: Mapped[Optional[str]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    snmp_profile: Mapped[str | None] = mapped_column(
         String(100), nullable=True,
         comment="key into snmp_profiles.py (legacy)"
     )
-    template_type: Mapped[Optional[str]] = mapped_column(
+    template_type: Mapped[str | None] = mapped_column(
         String(20), nullable=True,
         comment="snmp, mib, cisco, zabbix"
     )
-    template_ref_id: Mapped[Optional[str]] = mapped_column(
+    template_ref_id: Mapped[str | None] = mapped_column(
         String(32), nullable=True,
         comment="ID of the selected template/MIB/list"
     )
-    icon: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    icon: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    templates: Mapped[List["MonitoringTemplate"]] = relationship(
+    templates: Mapped[list["MonitoringTemplate"]] = relationship(
         "MonitoringTemplate", back_populates="device_model", cascade="all, delete-orphan"
     )
 
@@ -57,19 +62,19 @@ class MonitoringTemplate(Base):
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=gen_uuid)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    device_model_id: Mapped[Optional[str]] = mapped_column(
+    device_model_id: Mapped[str | None] = mapped_column(
         String(32), ForeignKey("device_models.id", ondelete="SET NULL"), nullable=True
     )
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    source: Mapped[Optional[str]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source: Mapped[str | None] = mapped_column(
         String(50), nullable=True, default="manual",
         comment="Source of this template: 'manual', 'zabbix', 'mib'"
     )
-    mib_file_ids: Mapped[Optional[str]] = mapped_column(
+    mib_file_ids: Mapped[str | None] = mapped_column(
         JSON, nullable=True,
         comment="JSON array of associated MIB file IDs"
     )
-    cisco_list_ids: Mapped[Optional[str]] = mapped_column(
+    cisco_list_ids: Mapped[str | None] = mapped_column(
         JSON, nullable=True,
         comment="JSON array of associated Cisco support list file IDs"
     )
@@ -79,7 +84,7 @@ class MonitoringTemplate(Base):
     device_model: Mapped[Optional["DeviceModel"]] = relationship(
         "DeviceModel", back_populates="templates"
     )
-    items: Mapped[List["TemplateItem"]] = relationship(
+    items: Mapped[list["TemplateItem"]] = relationship(
         "TemplateItem", back_populates="template", cascade="all, delete-orphan"
     )
 
@@ -103,12 +108,12 @@ class TemplateItem(Base):
         String(20), nullable=False, default="snmp",
         comment="snmp, icmp, agent, web"
     )
-    oid_or_key: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    oid_or_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
     data_type: Mapped[str] = mapped_column(
         String(20), nullable=False, default="gauge",
         comment="gauge, counter, table, text"
     )
-    unit: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    unit: Mapped[str | None] = mapped_column(String(50), nullable=True)
     display_type: Mapped[str] = mapped_column(String(20), default="chart", comment="chart, gauge, text, table")
     interval_seconds: Mapped[int] = mapped_column(Integer, default=60)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -122,9 +127,9 @@ class ParsedOid(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=gen_uuid)
     oid: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description_zh: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    description_en: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    mib_source: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    description_zh: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    description_en: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    mib_source: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
@@ -134,10 +139,10 @@ class MibFile(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=gen_uuid)
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
     file_type: Mapped[str] = mapped_column(String(20), nullable=False, comment="mib, cisco_list")
-    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    content: Mapped[str | None] = mapped_column(Text, nullable=True)
     oid_count: Mapped[int] = mapped_column(Integer, default=0)
     mib_count: Mapped[int] = mapped_column(Integer, default=0)
-    parsed_oids: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, comment="Parsed OID list from this MIB")
+    parsed_oids: Mapped[dict | None] = mapped_column(JSON, nullable=True, comment="Parsed OID list from this MIB")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
@@ -146,9 +151,9 @@ class OidTestResult(Base):
     __tablename__ = "oid_test_results"
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=gen_uuid)
     oid: Mapped[str] = mapped_column(String(500), nullable=False, index=True)
-    name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    result_value: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    test_ip: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    result_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    test_ip: Mapped[str | None] = mapped_column(String(50), nullable=True)
     tested_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

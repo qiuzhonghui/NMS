@@ -1,62 +1,60 @@
 """Topology API routes."""
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
 from pydantic import BaseModel
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
-from ..models.topology import TopologyNode, TopologyEdge
-from ..models.device import Device
+from ..models.topology import TopologyEdge, TopologyNode
 
 router = APIRouter(prefix="/topology", tags=["topology"])
 
 
 class NodeCreate(BaseModel):
-    device_id: Optional[str] = None
+    device_id: str | None = None
     label: str
     node_type: str = "manual"
-    x: Optional[float] = None
-    y: Optional[float] = None
-    width: Optional[int] = None
-    height: Optional[int] = None
-    image_url: Optional[str] = None
-    text_content: Optional[str] = None
+    x: float | None = None
+    y: float | None = None
+    width: int | None = None
+    height: int | None = None
+    image_url: str | None = None
+    text_content: str | None = None
     discovery_source: str = "manual"
 
 
 class NodeUpdate(BaseModel):
-    label: Optional[str] = None
-    x: Optional[float] = None
-    y: Optional[float] = None
-    width: Optional[int] = None
-    height: Optional[int] = None
-    image_url: Optional[str] = None
-    text_content: Optional[str] = None
-    canvas_data: Optional[dict] = None
+    label: str | None = None
+    x: float | None = None
+    y: float | None = None
+    width: int | None = None
+    height: int | None = None
+    image_url: str | None = None
+    text_content: str | None = None
+    canvas_data: dict | None = None
 
 
 class EdgeCreate(BaseModel):
     source_node_id: str
     target_node_id: str
-    label: Optional[str] = None
+    label: str | None = None
     edge_type: str = "wired"
-    source_interface: Optional[str] = None
-    target_interface: Optional[str] = None
+    source_interface: str | None = None
+    target_interface: str | None = None
     line_style: str = "solid"
-    color: Optional[str] = None
+    color: str | None = None
     discovery_source: str = "manual"
 
 
 class EdgeUpdate(BaseModel):
-    label: Optional[str] = None
-    edge_type: Optional[str] = None
-    line_style: Optional[str] = None
-    color: Optional[str] = None
-    source_interface: Optional[str] = None
-    target_interface: Optional[str] = None
-    discovery_source: Optional[str] = None
+    label: str | None = None
+    edge_type: str | None = None
+    line_style: str | None = None
+    color: str | None = None
+    source_interface: str | None = None
+    target_interface: str | None = None
+    discovery_source: str | None = None
 
 
 @router.get("")
@@ -278,6 +276,7 @@ async def run_topology_discovery(
 async def _run_topology_discovery() -> None:
     """Run topology discovery in background, logging failures."""
     from loguru import logger
+
     from ..database import async_session_factory
     from ..services.topology_discovery import TopologyDiscovery
     try:

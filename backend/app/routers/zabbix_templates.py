@@ -3,27 +3,27 @@
 Endpoints for browsing the Zabbix 7.0 template repository,
 previewing conversion results, and importing templates into NMS.
 """
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
-from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
+from pydantic import BaseModel
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 from ..models.device_template import MonitoringTemplate, TemplateItem
 from ..services.zabbix_repo import (
-    get_template_list,
     fetch_template_yaml,
     get_cache_info,
-    start_refresh,
-    get_scan_progress,
-    get_scan_logs,
-    set_proxy,
     get_proxy,
+    get_scan_logs,
+    get_scan_progress,
+    get_template_list,
+    set_proxy,
+    start_refresh,
     test_proxy_connection,
 )
+
 router = APIRouter(prefix="/zabbix-templates", tags=["zabbix-templates"])
 
 
@@ -41,8 +41,8 @@ class PreviewRequest(BaseModel):
 
 class ImportRequest(BaseModel):
     path: str
-    template_name: Optional[str] = None   # optional override name
-    selected_items: Optional[list[str]] = None  # metric_names to import (all if None)
+    template_name: str | None = None   # optional override name
+    selected_items: list[str] | None = None  # metric_names to import (all if None)
 
 
 class ProxyRequest(BaseModel):

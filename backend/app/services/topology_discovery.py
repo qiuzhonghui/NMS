@@ -1,6 +1,4 @@
 """Topology discovery service — discovers network neighbors via CDP/LLDP."""
-import asyncio
-from typing import Optional
 
 from loguru import logger
 from sqlalchemy import select
@@ -8,15 +6,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 try:
     from pysnmp.hlapi.v3arch.asyncio import (
-        SnmpEngine, CommunityData, UdpTransportTarget, ContextData,
-        ObjectType, ObjectIdentity, next_cmd,
+        CommunityData,
+        ContextData,
+        ObjectIdentity,
+        ObjectType,
+        SnmpEngine,
+        UdpTransportTarget,
+        next_cmd,
     )
     SNMP_AVAILABLE = True
 except ImportError:
     SNMP_AVAILABLE = False
 
 from ..models.device import Device
-from ..models.topology import TopologyNode, TopologyEdge
+from ..models.topology import TopologyEdge, TopologyNode
 
 
 class TopologyDiscovery:
@@ -32,7 +35,7 @@ class TopologyDiscovery:
             return
 
         result = await self.session.execute(
-            select(Device).where(Device.snmp_enabled == True)
+            select(Device).where(Device.snmp_enabled.is_(True))
         )
         devices = result.scalars().all()
 
@@ -115,17 +118,8 @@ class TopologyDiscovery:
                     if error_indication:
                         break
                     for vb in var_binds:
-                        neighbor_ip = None
                         # Try to resolve neighbor name to IP
                         neighbor_name = str(vb[1])
-                        # Extract interface index from OID
-                        oid_parts = str(vb[0]).split(".")
-                        if len(oid_parts) >= 2:
-                            # Get local interface
-                            port_result = await self.session.execute(
-                                select(Device).where(Device.snmp_enabled == True)
-                            )
-
                         neighbors.append({
                             "neighbor_name": neighbor_name,
                             "local_interface": None,

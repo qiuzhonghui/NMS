@@ -1,22 +1,26 @@
 """MIB 管理 API — 上传、列表、AI 分析 MIB 文件和 Cisco 支持列表。"""
 import asyncio
+import json as _json
 import re
 import time
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
-from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from pydantic import BaseModel
-from loguru import logger
-import json as _json
 import httpx
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi.responses import StreamingResponse
+from loguru import logger
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
-from ..models.device_template import MibFile, ParsedOid, AISettings
 from ..models.device import gen_uuid
-from ..utils.mib_parser import parse_mib_oids, parse_cisco_supportlist, resolve_oids_second_pass, resolve_oids_with_db
+from ..models.device_template import AISettings, MibFile, ParsedOid
+from ..utils.mib_parser import (
+    parse_cisco_supportlist,
+    parse_mib_oids,
+    resolve_oids_second_pass,
+    resolve_oids_with_db,
+)
 
 router = APIRouter(prefix="/mib-manager", tags=["mib-manager"])
 
@@ -26,7 +30,7 @@ router = APIRouter(prefix="/mib-manager", tags=["mib-manager"])
 class AssociateMibsRequest(BaseModel):
     """关联 MIB 文件到模板的请求。"""
     mib_file_ids: list[str] = []
-    cisco_list_id: Optional[str] = None
+    cisco_list_id: str | None = None
 
 
 # ── 带重试的 MIB 下载 ───────────────────────────────────────────────────────
@@ -499,7 +503,6 @@ async def analyze_mib(file_id: str, session: AsyncSession = Depends(get_session)
         batch_size = ai_config.batch_size or 100
         concurrency = ai_config.ai_concurrency or 3
         req_timeout = ai_config.request_timeout or 120
-        grp_timeout = ai_config.group_timeout or 180
         total_batches = (len(oids_to_analyze) + batch_size - 1) // batch_size
         yield _json.dumps({"log": f"共 {len(oids_to_analyze)} 个 OID，分 {total_batches} 轮（{batch_size}/轮，{concurrency}并发）", "stat": f"Batch 0/{total_batches}"}) + '\n'
 
@@ -605,7 +608,7 @@ async def analyze_mib(file_id: str, session: AsyncSession = Depends(get_session)
             try:
                 msg = await asyncio.wait_for(q.get(), timeout=20.0)
                 yield msg
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 active = sorted(running_slots.keys())
                 elapsed = int(time.time() - start_time)
                 yield _json.dumps({"log": f"  ... {elapsed}s | 活跃窗口: {active} | 进度: {total_analyzed}条/{len(oids_to_analyze)}", "heartbeat": True}) + '\n'

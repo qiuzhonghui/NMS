@@ -1,6 +1,5 @@
 """ICMP reachability monitor — periodically checks all managed devices."""
 import asyncio
-import socket
 from datetime import datetime
 
 from loguru import logger
@@ -11,7 +10,6 @@ try:
 except ImportError:
     ping = None
 
-from ..config import settings
 from ..database import async_session_factory
 from ..models.device import Device
 from ..models.metrics import DeviceMetric

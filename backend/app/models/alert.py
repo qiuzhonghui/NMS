@@ -1,8 +1,7 @@
 """Alert rule and alert models."""
 from datetime import datetime
-from typing import Optional
 
-from sqlalchemy import String, DateTime, Integer, Float, ForeignKey, Text, Boolean
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..database import Base
@@ -16,7 +15,7 @@ class AlertRule(Base):
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=gen_uuid)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    device_id: Mapped[Optional[str]] = mapped_column(
+    device_id: Mapped[str | None] = mapped_column(
         String(32), ForeignKey("devices.id", ondelete="CASCADE"), nullable=True,
         comment="NULL means global rule for all devices"
     )
@@ -34,7 +33,7 @@ class AlertRule(Base):
         String(20), default="warning", comment="info, warning, critical"
     )
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
@@ -44,7 +43,7 @@ class Alert(Base):
     __tablename__ = "alerts"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=gen_uuid)
-    alert_rule_id: Mapped[Optional[str]] = mapped_column(
+    alert_rule_id: Mapped[str | None] = mapped_column(
         String(32), ForeignKey("alert_rules.id", ondelete="SET NULL"), nullable=True
     )
     device_id: Mapped[str] = mapped_column(
@@ -56,4 +55,4 @@ class Alert(Base):
     )
     acknowledged: Mapped[bool] = mapped_column(Boolean, default=False)
     triggered_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
-    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

@@ -1,10 +1,10 @@
 """AI 设置 API — 配置 AI 分析所需的 API key、模型名等参数。"""
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from pydantic import BaseModel, Field
-from loguru import logger
 import httpx
+from fastapi import APIRouter, Depends, HTTPException
+from loguru import logger
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 from ..models.device_template import AISettings

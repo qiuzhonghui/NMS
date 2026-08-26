@@ -1,8 +1,8 @@
 """Front panel and port models for custom device faceplate visualization."""
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
 
-from sqlalchemy import String, DateTime, Integer, Float, ForeignKey, Text, JSON
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..database import Base
@@ -16,16 +16,16 @@ class FrontPanel(Base):
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=gen_uuid)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    device_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    device_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
     width: Mapped[int] = mapped_column(Integer, nullable=False, default=800)
     height: Mapped[int] = mapped_column(Integer, nullable=False, default=300)
-    background_image: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    ports_layout: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True,
+    background_image: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    ports_layout: Mapped[dict | None] = mapped_column(JSON, nullable=True,
         comment="Overall layout config: orientation, port spacing, etc.")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    ports: Mapped[List["FrontPanelPort"]] = relationship(
+    ports: Mapped[list["FrontPanelPort"]] = relationship(
         "FrontPanelPort", back_populates="front_panel", cascade="all, delete-orphan"
     )
 
@@ -45,10 +45,10 @@ class FrontPanelPort(Base):
     )
     x: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     y: Mapped[float] = mapped_column(Float, nullable=False, default=0)
-    interface_id: Mapped[Optional[str]] = mapped_column(
+    interface_id: Mapped[str | None] = mapped_column(
         String(32), ForeignKey("device_interfaces.id", ondelete="SET NULL"), nullable=True
     )
-    status_oid: Mapped[Optional[str]] = mapped_column(String(255), nullable=True,
+    status_oid: Mapped[str | None] = mapped_column(String(255), nullable=True,
         comment="Custom SNMP OID for port status if not linked to an interface")
 
     # Relationship

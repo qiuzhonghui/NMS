@@ -1,8 +1,7 @@
 """Custom dashboards and widgets."""
 from datetime import datetime
-from typing import Optional, List
 
-from sqlalchemy import String, Boolean, DateTime, Integer, JSON, ForeignKey
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..database import Base
@@ -16,12 +15,12 @@ class Dashboard(Base):
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=gen_uuid)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    widgets: Mapped[List["DashboardWidget"]] = relationship(
+    widgets: Mapped[list["DashboardWidget"]] = relationship(
         "DashboardWidget", back_populates="dashboard", cascade="all, delete-orphan"
     )
 
@@ -40,7 +39,7 @@ class DashboardWidget(Base):
         String(20), nullable=False,
         comment="chart, gauge, table, text, stat, topn, number"
     )
-    config: Mapped[Optional[dict]] = mapped_column(
+    config: Mapped[dict | None] = mapped_column(
         JSON, nullable=True,
         comment="Stores: metric_keys, device_ids, chart_type, refresh_interval, "
                 "time_range, group_by, top_n, thresholds, ..."

@@ -1,11 +1,10 @@
 """Dashboard and widget API routes."""
-from typing import Optional, List
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, func
-from sqlalchemy.orm import selectinload
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from ..database import get_session
 from ..models.dashboard import Dashboard, DashboardWidget
@@ -20,18 +19,18 @@ router = APIRouter(prefix="/dashboards", tags=["dashboards"])
 
 class DashboardCreate(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class DashboardUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
+    name: str | None = None
+    description: str | None = None
 
 
 class WidgetCreate(BaseModel):
     title: str
     widget_type: str                      # chart, gauge, table, text, stat, topn, number
-    config: Optional[dict] = None         # {metric_keys, device_ids, chart_type, ...}
+    config: dict | None = None         # {metric_keys, device_ids, chart_type, ...}
     x: int = 0
     y: int = 0
     w: int = 4
@@ -39,13 +38,13 @@ class WidgetCreate(BaseModel):
 
 
 class WidgetUpdate(BaseModel):
-    title: Optional[str] = None
-    widget_type: Optional[str] = None
-    config: Optional[dict] = None
-    x: Optional[int] = None
-    y: Optional[int] = None
-    w: Optional[int] = None
-    h: Optional[int] = None
+    title: str | None = None
+    widget_type: str | None = None
+    config: dict | None = None
+    x: int | None = None
+    y: int | None = None
+    w: int | None = None
+    h: int | None = None
 
 
 # ═══════════════════════════════════════════════════════════════════════════

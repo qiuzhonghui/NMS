@@ -1,11 +1,10 @@
 """Device model and monitoring template API routes."""
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from pydantic import BaseModel
 from loguru import logger
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 from ..models.device_template import DeviceModel, MonitoringTemplate, TemplateItem
@@ -21,9 +20,9 @@ template_router = APIRouter(prefix="/templates", tags=["templates"])
 
 @router.get("")
 async def list_models(
-    vendor: Optional[str] = Query(None),
-    device_type: Optional[str] = Query(None),
-    category: Optional[str] = Query(None),
+    vendor: str | None = Query(None),
+    device_type: str | None = Query(None),
+    category: str | None = Query(None),
     session: AsyncSession = Depends(get_session),
 ):
     """List all device models, optionally filtered."""
@@ -57,18 +56,18 @@ class ModelCreate(BaseModel):
     model_name: str
     device_type: str = "other"
     category: str = "network"
-    snmp_profile: Optional[str] = None
-    template_type: Optional[str] = None
-    template_ref_id: Optional[str] = None
+    snmp_profile: str | None = None
+    template_type: str | None = None
+    template_ref_id: str | None = None
 
 class ModelUpdate(BaseModel):
-    vendor: Optional[str] = None
-    model_name: Optional[str] = None
-    device_type: Optional[str] = None
-    category: Optional[str] = None
-    snmp_profile: Optional[str] = None
-    template_type: Optional[str] = None
-    template_ref_id: Optional[str] = None
+    vendor: str | None = None
+    model_name: str | None = None
+    device_type: str | None = None
+    category: str | None = None
+    snmp_profile: str | None = None
+    template_type: str | None = None
+    template_ref_id: str | None = None
 
 @router.post("")
 async def create_model(
@@ -164,7 +163,7 @@ async def seed_models(
 
 @template_router.get("")
 async def list_templates(
-    device_model_id: Optional[str] = Query(None),
+    device_model_id: str | None = Query(None),
     session: AsyncSession = Depends(get_session),
 ):
     """List all monitoring templates."""
@@ -188,8 +187,8 @@ async def list_templates(
 
 class TemplateCreate(BaseModel):
     name: str
-    device_model_id: Optional[str] = None
-    description: Optional[str] = None
+    device_model_id: str | None = None
+    description: str | None = None
 
 
 @template_router.post("")
@@ -254,7 +253,7 @@ class TemplateItemCreate(BaseModel):
     metric_name: str
     metric_type: str = "cpu"
     protocol: str = "snmp"
-    oid_or_key: Optional[str] = None
+    oid_or_key: str | None = None
     data_type: str = "gauge"
     unit: str = "%"
     interval_seconds: int = 60
@@ -329,7 +328,7 @@ async def apply_template_to_device(
     items = await session.execute(
         select(TemplateItem).where(
             TemplateItem.template_id == template_id,
-            TemplateItem.enabled == True,
+            TemplateItem.enabled.is_(True),
         )
     )
     items = items.scalars().all()

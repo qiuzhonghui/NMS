@@ -9,7 +9,8 @@
 所有超时/重试统一取自 ``settings``;返回值归一化由 ``_coerce`` 处理。
 各 router / service 不再各自维护 SNMP 封装。
 """
-from typing import Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from loguru import logger
 
@@ -17,18 +18,23 @@ from ..config import settings
 
 try:
     from pysnmp.hlapi.v3arch.asyncio import (
-        SnmpEngine, CommunityData, UdpTransportTarget, ContextData,
-        ObjectType, ObjectIdentity, get_cmd,
+        CommunityData,
+        ContextData,
+        ObjectIdentity,
+        ObjectType,
+        SnmpEngine,
+        UdpTransportTarget,
+        get_cmd,
     )
     SNMP_AVAILABLE = True
 except ImportError:
     SNMP_AVAILABLE = False
 
 from ..utils.snmp_helpers import (
-    SNMP_OID_SYSTEM,
     SNMP_OID_INTERFACES,
-    detect_vendor,
+    SNMP_OID_SYSTEM,
     detect_device_type,
+    detect_vendor,
 )
 
 # ── 小工具 ──────────────────────────────────────────────────────────────
@@ -60,8 +66,8 @@ def _coerce(val):
 
 
 async def _build_target(host: str, port: int,
-                        timeout: Optional[int] = None,
-                        retries: Optional[int] = None):
+                        timeout: int | None = None,
+                        retries: int | None = None):
     """构建 pysnmp UDP target(默认值取 settings)。"""
     return await UdpTransportTarget.create(
         (host, port),
@@ -117,13 +123,13 @@ def snmp_get(host: str, oid: str, *, port: int = 161, community: str = "public",
 
 async def snmp_get_many(host: str, oid_map: dict, *, port: int = 161,
                         community: str = "public", version: str = "2c",
-                        timeout: Optional[int] = None,
-                        retries: Optional[int] = None) -> dict:
+                        timeout: int | None = None,
+                        retries: int | None = None) -> dict:
     """批量 GET ``{name: OID}`` -> ``{name: value}``。
 
     个别 OID 失败时跳过该键。迁移自 snmp_collector._snmp_get_metrics,行为一致。
     """
-    result = {}
+    result: dict[str, Any] = {}
     if not SNMP_AVAILABLE or not oid_map:
         return result
     try:
@@ -139,7 +145,7 @@ async def snmp_get_many(host: str, oid_map: dict, *, port: int = 161,
         if error_indication:
             logger.debug(f"SNMP get_many failed for {host}: {error_indication}")
             return result
-        for (name, oid), vb in zip(oid_map.items(), var_binds):
+        for (name, _oid), vb in zip(oid_map.items(), var_binds):
             try:
                 val = vb[1]
                 if hasattr(val, "_value"):
@@ -208,9 +214,9 @@ async def snmp_walk(host: str, base_oid: str, *, port: int = 161,
 
 
 async def system_probe(host: str, community: str = "public", *, port: int = 161,
-                       version: str = "2c", timeout: Optional[int] = None,
-                       retries: Optional[int] = None,
-                       os_detector: Optional[Callable[[str], Optional[str]]] = None) -> Optional[dict]:
+                       version: str = "2c", timeout: int | None = None,
+                       retries: int | None = None,
+                       os_detector: Callable[[str], str | None] | None = None) -> dict | None:
     """SNMP 系统信息探测,返回 vendor / device_type / os_type / sys_descr 等。
 
     ``os_detector`` 是 ``callable(sys_descr) -> os_type``,由调用方提供

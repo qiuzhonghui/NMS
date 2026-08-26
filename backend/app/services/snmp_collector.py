@@ -1,7 +1,6 @@
 """SNMP metric collection service — periodically polls devices for metrics."""
 import asyncio
 from datetime import datetime
-from typing import Any, Dict, Optional, Set
 
 from loguru import logger
 from sqlalchemy import select
@@ -11,13 +10,13 @@ from ..database import async_session_factory
 from ..models.device import Device
 from ..models.device_template import DeviceModel, TemplateItem
 from ..models.metrics import DeviceMetric
+from ..services.snmp import SNMP_AVAILABLE, snmp_get_many
 from ..utils.snmp_helpers import SNMP_OID_CPU, SNMP_OID_MEMORY
 from ..utils.snmp_profiles import get_profile
-from ..services.snmp import SNMP_AVAILABLE, snmp_get_many
 from ..websocket import ws_manager
 
 # Track running collection tasks by device_id
-_collector_tasks: Dict[str, asyncio.Task] = {}
+_collector_tasks: dict[str, asyncio.Task] = {}
 _running = False
 
 async def start_collector() -> None:
@@ -47,7 +46,7 @@ async def _collection_loop() -> None:
             async with async_session_factory() as session:
                 result = await session.execute(
                     select(Device).where(
-                        Device.snmp_enabled == True,
+                        Device.snmp_enabled.is_(True),
                         Device.status != "offline",
                     )
                 )
@@ -84,7 +83,6 @@ async def _collect_device_metrics(
             result = await session.execute(select(Device).where(Device.id == device_id))
             device = result.scalar_one_or_none()
             profile_oid = None
-            profile_name = None
             if device:
                 if device.model_id:
                     model_result = await session.execute(
@@ -93,14 +91,13 @@ async def _collect_device_metrics(
                     model = model_result.scalar_one_or_none()
                     if model and model.snmp_profile:
                         profile_oid = get_profile(model.snmp_profile)
-                        profile_name = model.snmp_profile
                 if not profile_oid and device.vendor:
                     vendor_lower = device.vendor.lower()
                     for name in ["cisco_ios", "huawei_vrp", "h3c_comware", "fortinet_fortios",
                                  "juniper_junos", "mikrotik_ros", "linux_generic", "windows_generic"]:
                         p = get_profile(name)
                         if p and p.get("vendor","").lower() in vendor_lower:
-                            profile_oid = p; profile_name = name; break
+                            profile_oid = p; break
 
                 # Collect template item OIDs if device has a monitoring template assigned
                 template_items_oids = {}
@@ -108,7 +105,7 @@ async def _collect_device_metrics(
                     items_result = await session.execute(
                         select(TemplateItem).where(
                             TemplateItem.template_id == device.template_id,
-                            TemplateItem.enabled == True,
+                            TemplateItem.enabled.is_(True),
                             TemplateItem.protocol == "snmp",
                             TemplateItem.oid_or_key.isnot(None),
                         )
@@ -172,7 +169,8 @@ async def _collect_device_metrics(
                 if ival and ival!="" and ival!=0:
                     try:
                         session.add(DeviceMetric(device_id=device_id, metric_type="network", metric_name=iname, value=float(ival), unit="octets", collected_at=now))
-                    except: pass
+                    except (ValueError, TypeError):
+                        pass
             # Skip interfaces — focus on CPU/memory metrics
 
             await session.commit()
@@ -200,7 +198,7 @@ async def _collect_device_metrics(
     except asyncio.CancelledError:
         pass
         raise
-    except Exception as e:
+    except Exception:
         # Mark device as potentially offline
         async with async_session_factory() as session:
             result = await session.execute(

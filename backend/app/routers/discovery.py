@@ -1,18 +1,16 @@
 """Network discovery API routes."""
 import asyncio
-import uuid
 import traceback
-from typing import Optional
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
-from pydantic import BaseModel
 from loguru import logger
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
-from ..models.device import DiscoveredDevice, Device
-from ..models.metrics import DeviceInterface
+from ..models.device import Device, DiscoveredDevice
 from ..services.scanner import NetworkScanner
 from ..websocket import ws_manager
 
@@ -39,7 +37,7 @@ class ScanProgress:
         if scan_id in self._scans:
             self._scans[scan_id].update(kwargs)
 
-    def get(self, scan_id: str) -> Optional[dict]:
+    def get(self, scan_id: str) -> dict | None:
         return self._scans.get(scan_id)
 
 
@@ -105,8 +103,8 @@ async def _deep_probe_and_update(device_id: str, ip: str) -> None:
 
 async def _run_scan(scan_id: str, req: ScanRequest) -> None:
     """Single-pass scan with real-time WebSocket updates as data comes in."""
-    from ..utils.cidr import parse_network_ranges
     from ..database import async_session_factory
+    from ..utils.cidr import parse_network_ranges
 
     targets = parse_network_ranges(req.ranges)
     total = len(targets)
@@ -212,8 +210,8 @@ async def get_scan_status(scan_id: str):
 
 @router.get("/devices")
 async def get_discovered_devices(
-    limit: Optional[int] = Query(None, ge=1, le=1000),
-    offset: Optional[int] = Query(None, ge=0),
+    limit: int | None = Query(None, ge=1, le=1000),
+    offset: int | None = Query(None, ge=0),
     session: AsyncSession = Depends(get_session),
 ):
     """List all discovered devices that haven't been approved yet.
@@ -352,11 +350,16 @@ async def ping_test(ip: str):
 async def debug_scan(ip: str):
     """Debug endpoint: scan a single IP and return ALL raw discovery data."""
     import asyncio as aio
+    import re
+    import socket
+
     from ..services.scanner import (
-        _get_arp_for_ip, _read_arp_table, nmap_scan, nmap_scan_detailed,
-        NetworkScanner, mac_oui_to_vendor,
+        NetworkScanner,
+        _get_arp_for_ip,
+        _read_arp_table,
+        mac_oui_to_vendor,
+        nmap_scan,
     )
-    import socket, re
 
     result = {"ip": ip, "steps": {}}
 

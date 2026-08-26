@@ -1,11 +1,10 @@
 """Front panel API routes."""
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from ..database import get_session
 from ..models.front_panel import FrontPanel, FrontPanelPort
@@ -16,19 +15,19 @@ router = APIRouter(prefix="/front-panels", tags=["front_panels"])
 
 class FrontPanelCreate(BaseModel):
     name: str
-    device_model: Optional[str] = None
+    device_model: str | None = None
     width: int = 800
     height: int = 300
-    background_image: Optional[str] = None
-    ports_layout: Optional[dict] = None
+    background_image: str | None = None
+    ports_layout: dict | None = None
 
 
 class FrontPanelUpdate(BaseModel):
-    name: Optional[str] = None
-    width: Optional[int] = None
-    height: Optional[int] = None
-    background_image: Optional[str] = None
-    ports_layout: Optional[dict] = None
+    name: str | None = None
+    width: int | None = None
+    height: int | None = None
+    background_image: str | None = None
+    ports_layout: dict | None = None
 
 
 class PortCreate(BaseModel):
@@ -36,17 +35,17 @@ class PortCreate(BaseModel):
     port_type: str = "rj45"
     x: float = 0
     y: float = 0
-    interface_id: Optional[str] = None
-    status_oid: Optional[str] = None
+    interface_id: str | None = None
+    status_oid: str | None = None
 
 
 class PortUpdate(BaseModel):
-    label: Optional[str] = None
-    port_type: Optional[str] = None
-    x: Optional[float] = None
-    y: Optional[float] = None
-    interface_id: Optional[str] = None
-    status_oid: Optional[str] = None
+    label: str | None = None
+    port_type: str | None = None
+    x: float | None = None
+    y: float | None = None
+    interface_id: str | None = None
+    status_oid: str | None = None
 
 
 @router.get("")

@@ -1,10 +1,9 @@
 """Network scanner — ICMP ping → SNMP probe → ARP/MAC identification."""
 import asyncio
-import os
 import re
 import socket
 import subprocess
-from typing import AsyncIterator, Optional
+from collections.abc import AsyncIterator
 
 from loguru import logger
 
@@ -13,9 +12,8 @@ try:
 except ImportError:
     ping = None
 
-from ..services.snmp import SNMP_AVAILABLE, system_probe
 from ..config import settings
-
+from ..services.snmp import SNMP_AVAILABLE, system_probe
 
 # ═══════════════════════════════════════════════════════════════════════════
 # MAC OUI database — maps OUI prefixes to vendor names
@@ -83,7 +81,7 @@ MAC_OUI_MAP = {
     "10:a9:3d": "Fortinet",   "20:0f:1e": "Fortinet",   "70:4c:a5": "Fortinet",
     "90:6c:ac": "Fortinet",   "d0:4d:2c": "Fortinet",   "e8:1c:ba": "Fortinet",
 
-    "00:0c:42": "MikroTik",   "00:15:6d": "MikroTik",   "08:55:31": "MikroTik",
+    "00:0c:42": "MikroTik",   "08:55:31": "MikroTik",
     "4c:5e:0c": "MikroTik",   "6c:3b:6b": "MikroTik",   "d4:ca:6d": "MikroTik",
     "e4:8d:8c": "MikroTik",
 
@@ -95,7 +93,7 @@ MAC_OUI_MAP = {
     "00:03:ff": "Microsoft",
     "00:16:3e": "Xen",
 
-    "00:50:8b": "Compaq",     "00:50:8b": "HP",
+    "00:50:8b": "HP",
     "00:02:c9": "Mellanox",
     "00:1b:21": "Intel",      "00:15:17": "Intel",      "00:1e:64": "Intel",
     "00:21:6a": "Intel",      "a0:36:9f": "Intel",      "e4:42:a6": "Intel",
@@ -182,9 +180,9 @@ def mac_oui_to_vendor(mac: str) -> str | None:
                             return vendor[1].strip()
         except Exception: pass
     # 2. Local OUI map as fallback
-    for prefix, vendor in MAC_OUI_MAP.items():
+    for prefix, vendor_name in MAC_OUI_MAP.items():
         if mac.startswith(prefix.lower()):
-            return vendor
+            return vendor_name
     return None
 
 
@@ -338,9 +336,9 @@ class NetworkScanner:
         for coro in asyncio.as_completed(tasks):
             yield await coro
 
-    async def _scan_single(self, ip: str) -> Optional[dict]:
+    async def _scan_single(self, ip: str) -> dict | None:
         """Step 1: ICMP → Step 2: Read ARP → Step 3: DNS → Step 4: SNMP → Step 5: TCP."""
-        result = {
+        result: dict = {
             "ip_address": ip,
             "hostname": None, "device_type": None, "vendor": None,
             "mac_address": None, "snmp_available": False, "snmp_community": None,
@@ -488,7 +486,7 @@ class NetworkScanner:
                 continue
         return open_ports
 
-    async def _snmp_probe(self, ip: str, community: str) -> Optional[dict]:
+    async def _snmp_probe(self, ip: str, community: str) -> dict | None:
         """SNMP system info probe. Returns extended device information.
 
         Delegates to the unified SNMP service (services/snmp.system_probe).

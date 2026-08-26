@@ -1,46 +1,44 @@
 """Alert API routes."""
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
-from ..models.alert import AlertRule, Alert
-from ..websocket import ws_manager
+from ..models.alert import Alert, AlertRule
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
 
 class AlertRuleCreate(BaseModel):
     name: str
-    device_id: Optional[str] = None
+    device_id: str | None = None
     metric_type: str
     metric_name: str
     condition: str
     threshold: float
     severity: str = "warning"
     enabled: bool = True
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class AlertRuleUpdate(BaseModel):
-    name: Optional[str] = None
-    metric_type: Optional[str] = None
-    metric_name: Optional[str] = None
-    condition: Optional[str] = None
-    threshold: Optional[float] = None
-    severity: Optional[str] = None
-    enabled: Optional[bool] = None
-    description: Optional[str] = None
+    name: str | None = None
+    metric_type: str | None = None
+    metric_name: str | None = None
+    condition: str | None = None
+    threshold: float | None = None
+    severity: str | None = None
+    enabled: bool | None = None
+    description: str | None = None
 
 
 @router.get("/rules")
 async def list_alert_rules(
-    device_id: Optional[str] = Query(None),
-    limit: Optional[int] = Query(None, ge=1, le=1000),
-    offset: Optional[int] = Query(None, ge=0),
+    device_id: str | None = Query(None),
+    limit: int | None = Query(None, ge=1, le=1000),
+    offset: int | None = Query(None, ge=0),
     session: AsyncSession = Depends(get_session),
 ):
     """List all alert rules.
@@ -146,9 +144,9 @@ async def delete_alert_rule(
 
 @router.get("")
 async def list_alerts(
-    device_id: Optional[str] = Query(None),
-    severity: Optional[str] = Query(None),
-    acknowledged: Optional[bool] = Query(None),
+    device_id: str | None = Query(None),
+    severity: str | None = Query(None),
+    acknowledged: bool | None = Query(None),
     limit: int = Query(100, le=500),
     session: AsyncSession = Depends(get_session),
 ):

@@ -1,14 +1,13 @@
 """Alert engine — evaluates alert rules and triggers alerts."""
 import asyncio
 from datetime import datetime
-from typing import Any
 
 from loguru import logger
 from sqlalchemy import select
 
 from ..config import settings
 from ..database import async_session_factory
-from ..models.alert import AlertRule, Alert
+from ..models.alert import Alert, AlertRule
 from ..models.metrics import DeviceMetric
 from ..websocket import ws_manager
 
@@ -45,7 +44,7 @@ async def _evaluate_rules() -> None:
     """Evaluate all enabled alert rules."""
     async with async_session_factory() as session:
         result = await session.execute(
-            select(AlertRule).where(AlertRule.enabled == True)
+            select(AlertRule).where(AlertRule.enabled.is_(True))
         )
         rules = result.scalars().all()
 

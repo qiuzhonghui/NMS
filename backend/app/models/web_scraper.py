@@ -1,9 +1,15 @@
 """Web scraping configs and port/protocol data."""
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import (
-    String, Boolean, DateTime, Integer, BigInteger, JSON, ForeignKey, Index,
+    JSON,
+    BigInteger,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -44,17 +50,17 @@ class DevicePort(Base):
     )
     port_name: Mapped[str] = mapped_column(String(100), nullable=False)
     port_index: Mapped[int] = mapped_column(Integer, nullable=False)
-    mac_address: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
-    ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
-    vlan: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    speed: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
-    duplex: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    mac_address: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    vlan: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    speed: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    duplex: Mapped[str | None] = mapped_column(String(20), nullable=True)
     status: Mapped[str] = mapped_column(String(10), default="down", comment="up, down")
-    admin_status: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
-    in_octets: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
-    out_octets: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
-    in_errors: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
-    out_errors: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    admin_status: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    in_octets: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    out_octets: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    in_errors: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    out_errors: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     collected_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     __table_args__ = (

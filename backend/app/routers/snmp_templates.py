@@ -1,21 +1,25 @@
 """SNMP Template management API routes — create, import MIB, manage OID items."""
-import time
-import json as _json
 import asyncio
+import json as _json
 from datetime import datetime as dt_now
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from pydantic import BaseModel
 from loguru import logger
+from pydantic import BaseModel
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..database import get_session, async_session_factory
-from ..models.device_template import MonitoringTemplate, TemplateItem, ParsedOid, MibFile, OidTestResult
+from ..database import async_session_factory, get_session
+from ..models.device_template import (
+    MibFile,
+    MonitoringTemplate,
+    OidTestResult,
+    ParsedOid,
+    TemplateItem,
+)
 from ..services.snmp import snmp_get
-from ..utils.mib_parser import parse_mib_oids, parse_cisco_supportlist, download_and_parse_mib
-
+from ..utils.mib_parser import download_and_parse_mib, parse_cisco_supportlist, parse_mib_oids
 
 # ── 内置 OID 描述字典 (中/英) ──────────────────────────────────────────────
 OID_DESCRIPTIONS: dict[str, tuple[str, str]] = {
@@ -63,7 +67,7 @@ router = APIRouter(prefix="/snmp-templates", tags=["snmp-templates"])
 
 class TemplateCreate(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class TemplateItemCreate(BaseModel):
@@ -76,12 +80,12 @@ class TemplateItemCreate(BaseModel):
 
 
 class TemplateItemUpdate(BaseModel):
-    metric_name: Optional[str] = None
-    oid_or_key: Optional[str] = None
-    unit: Optional[str] = None
-    display_type: Optional[str] = None
-    interval_seconds: Optional[int] = None
-    enabled: Optional[bool] = None
+    metric_name: str | None = None
+    oid_or_key: str | None = None
+    unit: str | None = None
+    display_type: str | None = None
+    interval_seconds: int | None = None
+    enabled: bool | None = None
 
 
 # ── OID 测试结果存取 ───────────────────────────────────────────────────────
@@ -210,7 +214,6 @@ async def delete_item(template_id: str, item_id: str, session: AsyncSession = De
 @router.post("/{template_id}/import-cisco-list")
 async def import_cisco_list(template_id: str, file: UploadFile = File(...), session: AsyncSession = Depends(get_session)):
     """上传 Cisco MIB 支持列表 HTML，流式下载并解析 MIB，返回 JSON 行格式的实时进度。"""
-    from fastapi.responses import StreamingResponse
     import json as _json
 
     t = await session.get(MonitoringTemplate, template_id)

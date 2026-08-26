@@ -1,33 +1,32 @@
 """Rack management API routes."""
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from ..database import get_session
-from ..models.rack import Rack, RackDevice
 from ..models.device import Device
+from ..models.rack import Rack, RackDevice
 
 router = APIRouter(prefix="/racks", tags=["racks"])
 
 
 class RackCreate(BaseModel):
     name: str
-    location: Optional[str] = None
+    location: str | None = None
     height: int = 42
     width: int = 19
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class RackUpdate(BaseModel):
-    name: Optional[str] = None
-    location: Optional[str] = None
-    height: Optional[int] = None
-    width: Optional[int] = None
-    description: Optional[str] = None
+    name: str | None = None
+    location: str | None = None
+    height: int | None = None
+    width: int | None = None
+    description: str | None = None
 
 
 class RackDevicePlace(BaseModel):

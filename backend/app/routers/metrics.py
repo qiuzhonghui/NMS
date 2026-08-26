@@ -1,9 +1,8 @@
 """Metrics API routes."""
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 
 from ..database import get_session
 from ..models.metrics import DeviceMetric, InterfaceMetric
@@ -13,7 +12,7 @@ router = APIRouter(prefix="/metrics", tags=["metrics"])
 
 @router.get("/latest")
 async def get_latest_metrics(
-    device_ids: Optional[str] = Query(None, description="Comma-separated device IDs"),
+    device_ids: str | None = Query(None, description="Comma-separated device IDs"),
     session: AsyncSession = Depends(get_session),
 ):
     """Get the latest metric values for specified devices.
@@ -66,8 +65,8 @@ async def get_latest_metrics(
 @router.get("/interfaces/{interface_id}")
 async def get_interface_metrics(
     interface_id: str,
-    from_time: Optional[str] = Query(None),
-    to_time: Optional[str] = Query(None),
+    from_time: str | None = Query(None),
+    to_time: str | None = Query(None),
     limit: int = Query(100, le=500),
     session: AsyncSession = Depends(get_session),
 ):

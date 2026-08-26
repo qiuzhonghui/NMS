@@ -5,16 +5,30 @@ from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from .config import settings
-from .database import init_db, close_db
-from .websocket import ws_manager
+from .database import close_db, init_db
 
 # Import routers (lazy — added as they are built)
-from .routers import discovery, devices, metrics, topology, racks, front_panels, alerts, device_models, dashboards, snmp_templates, mib_manager, ai_settings, zabbix_templates
+from .routers import (
+    ai_settings,
+    alerts,
+    dashboards,
+    device_models,
+    devices,
+    discovery,
+    front_panels,
+    metrics,
+    mib_manager,
+    racks,
+    snmp_templates,
+    topology,
+    zabbix_templates,
+)
+from .websocket import ws_manager
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
 VERSION_FILE = Path(__file__).resolve().parent.parent.parent / "VERSION"
@@ -23,7 +37,8 @@ def get_version() -> str:
     try:
         first_line = VERSION_FILE.read_text(encoding='utf-8').split('\n')[0].strip()
         return first_line
-    except: return "1.0.0"
+    except Exception:
+        return "1.0.0"
 
 
 @asynccontextmanager
@@ -34,9 +49,9 @@ async def lifespan(app: FastAPI):
     logger.info("Database tables ensured.")
 
     # Start background monitoring services
-    from .services.snmp_collector import start_collector, stop_collector
-    from .services.icmp_monitor import start_monitor, stop_monitor
     from .services.alert_engine import start_alert_engine, stop_alert_engine
+    from .services.icmp_monitor import start_monitor, stop_monitor
+    from .services.snmp_collector import start_collector, stop_collector
 
     await start_collector()
     await start_monitor()
@@ -144,6 +159,8 @@ async def get_settings():
 
 
 from pydantic import BaseModel
+
+
 class SettingsUpdate(BaseModel):
     icmp_interval: int = 15
     snmp_interval: int = 60

@@ -1,6 +1,5 @@
 """MIB file parser — extracts OID definitions from ASN.1 MIB files."""
 import re
-from typing import Optional
 
 
 def parse_mib_file(content: str) -> list[dict]:
@@ -33,8 +32,6 @@ def parse_mib_file(content: str) -> list[dict]:
         om = re.match(r'::=\s*\{\s*(.+)\s*\}', line)
         if om:
             oid_tail = om.group(1).strip()
-            # Also look for OID in DEFVAL
-            defval_m = re.search(r'\{[^}]+\}', oid_tail)
             current['oid'] = oid_tail
             continue
 
@@ -76,7 +73,6 @@ def parse_mib_oids(content: str) -> dict[str, str]:
 
     # 第一遍：收集所有 OBJECT IDENTIFIER 定义和 OBJECT-TYPE 定义
     # Cisco MIB 格式：name OBJECT-TYPE\n  SYNTAX ...\n  ::= { parent number }
-    objects = {}  # name -> parent ref string
     id_assignments = {}  # name -> numeric OID
 
     # 先收集 MODULE-IDENTITY 的根 OID
@@ -122,10 +118,6 @@ def parse_mib_oids(content: str) -> dict[str, str]:
             oids[name] = '1.3.6.1.4.1.9.9.' + '.'.join(tail_nums) if tail_nums else ''
         elif parent == 'enterprises':
             oids[name] = '1.3.6.1.4.1.' + '.'.join(tail_nums) if tail_nums else ''
-
-    # 也收集 Notification 类型
-    for m in re.finditer(r'(\w[\w-]*)\s+OBJECT-GROUP\s*.*?::=\s*\{([^}]+)\}', content, re.DOTALL | re.IGNORECASE):
-        pass  # OBJECT-GROUP 不映射到具体 OID
 
     return oids
 
