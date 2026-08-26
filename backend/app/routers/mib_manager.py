@@ -37,6 +37,28 @@ class AssociateMibsRequest(BaseModel):
 
 MAX_PARALLEL = 8  # 并行下载并发数
 
+# 下载优先级关键词:名称包含这些关键词的 MIB 优先处理(upload/reparse 共用)
+CISCO_PRIORITY_KEYWORDS = [
+    'cpu', 'memory', 'entity-sensor', 'envmon', 'process-mib',
+    'interface', 'ip-mib', 'tcp', 'udp', 'snmp', 'if-mib', 'system',
+    'cisco-process', 'cisco-memory', 'cisco-envmon', 'cisco-cpu',
+]
+
+
+async def _store_parsed_oid(session: AsyncSession, oid: str, name: str, source: str) -> bool:
+    """写入一条 ParsedOid(已存在则跳过),返回是否新增。
+
+    upload-cisco-list 与 reparse-cisco 共用,消除重复的查重 + 描述逻辑。
+    """
+    from ..utils.oid_descriptions import _lookup_oid_desc
+
+    zh, en = _lookup_oid_desc(oid, name)
+    existing = await session.execute(select(ParsedOid).where(ParsedOid.oid == oid))
+    if existing.scalar_one_or_none():
+        return False
+    session.add(ParsedOid(oid=oid, name=name, description_zh=zh, description_en=en, mib_source=source))
+    return True
+
 def _download_mib_with_retry(url: str, max_retries: int = 3) -> dict[str, str]:
     """下载并解析 MIB 文件，失败自动重试（指数退避）。"""
     import urllib.request
@@ -142,10 +164,7 @@ async def upload_cisco_list(file: UploadFile = File(...), session: AsyncSession 
         yield _json.dumps({"cisco_list_id": cisco_file.id, "log": f"支持列表已保存 (ID: {cisco_file.id})"}) + '\n'
 
         # 优先下载关键 MIB
-        priority_keywords = ['cpu', 'memory', 'entity-sensor', 'envmon', 'process-mib',
-            'interface', 'ip-mib', 'tcp', 'udp', 'snmp', 'if-mib', 'system',
-            'cisco-process', 'cisco-memory', 'cisco-envmon', 'cisco-cpu']
-        priority_mibs = [m for m in mib_list if any(kw in m['name'].lower() for kw in priority_keywords)]
+        priority_mibs = [m for m in mib_list if any(kw in m['name'].lower() for kw in CISCO_PRIORITY_KEYWORDS)]
         other_mibs = [m for m in mib_list if m not in priority_mibs]
         to_download = priority_mibs + other_mibs  # 下载全部
 
@@ -174,12 +193,9 @@ async def upload_cisco_list(file: UploadFile = File(...), session: AsyncSession 
                 success += 1; new_count = 0
                 for name, oid in oids.items():
                     if oid and oid not in all_oids:
-                        all_oids[name] = oid; new_count += 1
-                        from ..utils.oid_descriptions import _lookup_oid_desc
-                        zh, en = _lookup_oid_desc(oid, name)
-                        existing_oid = await session.execute(select(ParsedOid).where(ParsedOid.oid == oid))
-                        if not existing_oid.scalar_one_or_none():
-                            session.add(ParsedOid(oid=oid, name=name, description_zh=zh, description_en=en, mib_source=mib['name']))
+                        all_oids[name] = oid
+                        if await _store_parsed_oid(session, oid, name, mib['name']):
+                            new_count += 1
                 tag = f"+{new_count}" if new_count else "no new"
                 yield _json.dumps({"log": f"  ✓ [{done_cnt}/{total}] {mib['name']} — {len(oids)} OIDs, {tag}"}) + '\n'
             yield _json.dumps({"stat": f"Progress: {done_cnt}/{total} | OIDs: {len(all_oids)}"}) + '\n'
@@ -246,10 +262,7 @@ async def reparse_cisco_list(file_id: str, session: AsyncSession = Depends(get_s
 
         yield _json.dumps({"log": f"已有 {len(existing_oids)} 个 OID，将增量添加新 OID"}) + '\n'
 
-        priority_keywords = ['cpu', 'memory', 'entity-sensor', 'envmon', 'process-mib',
-            'interface', 'ip-mib', 'tcp', 'udp', 'snmp', 'if-mib', 'system',
-            'cisco-process', 'cisco-memory', 'cisco-envmon', 'cisco-cpu']
-        priority_mibs = [m for m in mib_list if any(kw in m['name'].lower() for kw in priority_keywords)]
+        priority_mibs = [m for m in mib_list if any(kw in m['name'].lower() for kw in CISCO_PRIORITY_KEYWORDS)]
         other_mibs = [m for m in mib_list if m not in priority_mibs]
         to_download = priority_mibs + other_mibs  # 下载全部
 
@@ -279,12 +292,9 @@ async def reparse_cisco_list(file_id: str, session: AsyncSession = Depends(get_s
                 for name, oid in oids.items():
                     if oid and oid not in existing_oids and oid not in all_oids:
                         all_oids[oid] = {"name": name, "oid": oid}
-                        existing_oids.add(oid); new_count += 1
-                        from ..utils.oid_descriptions import _lookup_oid_desc
-                        zh, en = _lookup_oid_desc(oid, name)
-                        existing_po = await session.execute(select(ParsedOid).where(ParsedOid.oid == oid))
-                        if not existing_po.scalar_one_or_none():
-                            session.add(ParsedOid(oid=oid, name=name, description_zh=zh, description_en=en, mib_source=mib['name']))
+                        existing_oids.add(oid)
+                        if await _store_parsed_oid(session, oid, name, mib['name']):
+                            new_count += 1
                 if new_count > 0:
                     yield _json.dumps({"log": f"  ✓ [{done_cnt}/{total}] {mib['name']} — +{new_count} new"}) + '\n'
                     new_total += new_count
