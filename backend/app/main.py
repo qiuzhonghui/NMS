@@ -51,11 +51,13 @@ async def lifespan(app: FastAPI):
     # Start background monitoring services
     from .services.alert_engine import start_alert_engine, stop_alert_engine
     from .services.icmp_monitor import start_monitor, stop_monitor
+    from .services.retention import start_retention, stop_retention
     from .services.snmp_collector import start_collector, stop_collector
 
     await start_collector()
     await start_monitor()
     await start_alert_engine()
+    await start_retention()
     logger.info("Background services started.")
 
     yield
@@ -64,6 +66,7 @@ async def lifespan(app: FastAPI):
     await stop_collector()
     await stop_monitor()
     await stop_alert_engine()
+    await stop_retention()
     await close_db()
     logger.info("Shutdown complete.")
 

@@ -32,6 +32,8 @@ class DeviceMetric(Base):
 
     __table_args__ = (
         Index("idx_device_metric_time", "device_id", "metric_type", "collected_at"),
+        # alert_engine / list_devices 按 metric_name 查最新值
+        Index("idx_device_metric_name_time", "device_id", "metric_name", "collected_at"),
     )
 
 

@@ -44,7 +44,7 @@ class Alert(Base):
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=gen_uuid)
     alert_rule_id: Mapped[str | None] = mapped_column(
-        String(32), ForeignKey("alert_rules.id", ondelete="SET NULL"), nullable=True
+        String(32), ForeignKey("alert_rules.id", ondelete="SET NULL"), nullable=True, index=True
     )
     device_id: Mapped[str] = mapped_column(
         String(32), ForeignKey("devices.id", ondelete="CASCADE"), nullable=False, index=True
