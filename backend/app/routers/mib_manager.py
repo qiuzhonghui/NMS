@@ -97,7 +97,7 @@ async def upload_mib(file: UploadFile = File(...), session: AsyncSession = Depen
             select(ParsedOid.oid).where(ParsedOid.oid.in_([oid for _, oid in new_oids]))
         )
         existing_set = set(existing_rows.scalars().all())
-        from .snmp_templates import _lookup_oid_desc
+        from ..utils.oid_descriptions import _lookup_oid_desc
         for name, oid in new_oids:
             if oid in existing_set:
                 continue
@@ -175,7 +175,7 @@ async def upload_cisco_list(file: UploadFile = File(...), session: AsyncSession 
                 for name, oid in oids.items():
                     if oid and oid not in all_oids:
                         all_oids[name] = oid; new_count += 1
-                        from .snmp_templates import _lookup_oid_desc
+                        from ..utils.oid_descriptions import _lookup_oid_desc
                         zh, en = _lookup_oid_desc(oid, name)
                         existing_oid = await session.execute(select(ParsedOid).where(ParsedOid.oid == oid))
                         if not existing_oid.scalar_one_or_none():
@@ -280,7 +280,7 @@ async def reparse_cisco_list(file_id: str, session: AsyncSession = Depends(get_s
                     if oid and oid not in existing_oids and oid not in all_oids:
                         all_oids[oid] = {"name": name, "oid": oid}
                         existing_oids.add(oid); new_count += 1
-                        from .snmp_templates import _lookup_oid_desc
+                        from ..utils.oid_descriptions import _lookup_oid_desc
                         zh, en = _lookup_oid_desc(oid, name)
                         existing_po = await session.execute(select(ParsedOid).where(ParsedOid.oid == oid))
                         if not existing_po.scalar_one_or_none():
