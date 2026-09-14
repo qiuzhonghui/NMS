@@ -834,9 +834,16 @@ do_deploy() {
     # ── Step -1: Regenerate VERSION from git (if source is a git repo) ────
     # Version is git-driven (tag/commits). Regenerate the manifest BEFORE
     # integrity check so VERSION matches the current working tree.
-    if [ -d "${SRC}/.git" ] && command -v git &>/dev/null && command -v python3 &>/dev/null; then
+    # 解释器需实测可用(Windows 上 python3 可能是 Store 存根,command -v 会误判)
+    local PY_BIN=""
+    for _cand in python3 python py; do
+        if command -v "$_cand" &>/dev/null && "$_cand" -c "import sys" &>/dev/null; then
+            PY_BIN="$_cand"; break
+        fi
+    done
+    if [ -d "${SRC}/.git" ] && command -v git &>/dev/null && [ -n "$PY_BIN" ]; then
         step "Regenerating VERSION from git..."
-        ( cd "${SRC}" && python3 native/gen_version.py ) || warn "VERSION regeneration failed; using existing VERSION."
+        ( cd "${SRC}" && "$PY_BIN" native/gen_version.py ) || warn "VERSION regeneration failed; using existing VERSION."
     fi
 
     # ── Step 0: Verify source integrity via VERSION manifest ─────────────

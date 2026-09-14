@@ -44,9 +44,27 @@ if [ ! -f "$VER_FILE" ]; then
     exit 1
 fi
 
+# 选择一个可用的 Python 解释器。
+# Windows 上 `python`/`python3` 可能是 Microsoft Store 存根 —— command -v 能找到
+# 但执行即失败,因此必须**实测能否运行**,否则会静默使用过期的 VERSION 清单。
+PY_BIN=""
+for _cand in python3 python py; do
+    if command -v "$_cand" &>/dev/null && "$_cand" -c "import sys" &>/dev/null; then
+        PY_BIN="$_cand"
+        break
+    fi
+done
+
 # Regenerate git-derived VERSION before pushing
-if [ -d "$PROJECT_DIR/.git" ] && command -v git &>/dev/null && command -v python3 &>/dev/null; then
-    ( cd "$PROJECT_DIR" && python3 native/gen_version.py >/dev/null 2>&1 || true )
+if [ -d "$PROJECT_DIR/.git" ] && command -v git &>/dev/null; then
+    if [ -n "$PY_BIN" ]; then
+        if ! ( cd "$PROJECT_DIR" && "$PY_BIN" native/gen_version.py ); then
+            echo "WARNING: gen_version.py failed — pushing the existing VERSION manifest."
+        fi
+    else
+        echo "WARNING: no working Python interpreter found — VERSION may be stale."
+        echo "         Run 'python native/gen_version.py' manually before pushing."
+    fi
 fi
 
 VERSION=$(head -1 "$VER_FILE" | tr -d '\r')
