@@ -1,5 +1,4 @@
 """Device and DiscoveredDevice models."""
-import uuid
 from datetime import datetime
 from typing import Optional
 
@@ -8,9 +7,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..database import Base
 
-
-def gen_uuid() -> str:
-    return uuid.uuid4().hex
+# gen_uuid 已迁至 app/utils/ids.py(中立模块,避免所有模型都依赖本文件)。
+# 这里 re-export 以保持既有引用 `from .device import gen_uuid` 仍然可用。
+from ..utils.ids import gen_uuid  # noqa: F401
 
 
 class Device(Base):

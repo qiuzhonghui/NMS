@@ -14,7 +14,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..database import Base
-from .device import gen_uuid
+from ..utils.ids import gen_uuid
 
 
 class WebScraperConfig(Base):

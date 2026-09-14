@@ -5,7 +5,7 @@ from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..database import Base
-from .device import gen_uuid
+from ..utils.ids import gen_uuid
 
 
 class DeviceMetric(Base):

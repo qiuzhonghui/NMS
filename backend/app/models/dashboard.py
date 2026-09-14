@@ -5,7 +5,7 @@ from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..database import Base
-from .device import gen_uuid
+from ..utils.ids import gen_uuid
 
 
 class Dashboard(Base):
