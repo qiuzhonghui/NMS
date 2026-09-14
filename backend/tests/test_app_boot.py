@@ -35,3 +35,31 @@ def test_boot_report_lists_all_services():
         report = main_module.boot_report
         recorded = set(report.services_started) | set(report.services_failed)
         assert recorded == {"snmp_collector", "icmp_monitor", "alert_engine", "retention"}, recorded
+
+
+def test_unknown_api_path_returns_404_not_html():
+    """未注册的 /api/* 必须返回 404 JSON,而不是 SPA 的 index.html。
+
+    否则某个模块挂掉时,前端会拿到 200 text/html、JSON 解析失败,
+    既掩盖了「哪个模块挂了」,也难以定位。
+    """
+    with TestClient(main_module.app) as client:
+        r = client.get("/api/definitely-not-a-real-endpoint")
+        assert r.status_code == 404
+        assert r.headers["content-type"].startswith("application/json")
+
+
+def test_spa_route_still_serves_index():
+    """非 API 的未知路径仍应回落到 SPA(前端路由依赖这个行为)。"""
+    with TestClient(main_module.app) as client:
+        r = client.get("/some/spa/route")
+        assert r.status_code == 200
+        assert "text/html" in r.headers["content-type"]
+
+
+def test_spa_path_traversal_is_blocked():
+    """目录穿越不能读到 FRONTEND_DIR 之外的文件。"""
+    with TestClient(main_module.app) as client:
+        r = client.get("/..%2f..%2f..%2fWindows%2fwin.ini")
+        assert "root:" not in r.text
+        assert "[fonts]" not in r.text

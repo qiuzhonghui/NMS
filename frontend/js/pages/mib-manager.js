@@ -483,9 +483,6 @@ const MibManagerPage = {
         }
         const tbody = document.getElementById('oidModalBody');
         tbody.innerHTML = rowsHtml;
-        document.getElementById('oidLoadBar').style.display = '';
-        document.getElementById('oidLoadBarFill').style.width = '100%';
-        setTimeout(() => document.getElementById('oidLoadBar').style.display = 'none', 500);
     },
 
     _saveColWidths(table) {

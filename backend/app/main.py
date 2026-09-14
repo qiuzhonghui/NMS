@@ -3,11 +3,12 @@ import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
+from sqlalchemy.orm import configure_mappers
 
 from .config import settings
 from .core import (
@@ -44,6 +45,17 @@ async def lifespan(app: FastAPI):
     失败详情记入 ``boot_report``,可通过 ``GET /api/system/modules`` 查看。
     """
     logger.info("Starting NMS application...")
+
+    # ORM mapper 预检:SQLAlchemy 的 mapper 配置是**惰性**的 —— relationship
+    # 里写错类名不会在 import 时报错,而是在此后第一次(哪怕是无关表的)查询时
+    # 才抛 InvalidRequestError,导致所有域一起挂且难以定位。
+    # 这里显式提前配置,把这类错误变成启动期、可隔离、可上报的错误。
+    try:
+        configure_mappers()
+        logger.info("ORM mappers configured.")
+    except Exception as exc:
+        boot_report.startup_errors["orm_mappers"] = f"{type(exc).__name__}: {exc}"
+        logger.error(f"ORM mapper 配置失败,应用仍将启动(数据库相关接口会报错): {exc}")
 
     try:
         await init_db()
@@ -182,7 +194,19 @@ if FRONTEND_DIR.exists():
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
         """Serve the SPA for any non-API route."""
-        file_path = FRONTEND_DIR / full_path
-        if file_path.exists() and file_path.is_file():
-            return FileResponse(str(file_path))
+        # 1) API 路径不做 SPA 兜底。
+        #    否则某个模块挂掉(未注册)时,/api/xxx 会落到这里返回 index.html
+        #    (200 text/html),前端拿到 HTML 解析 JSON 失败,既掩盖了「哪个模块
+        #    挂了」也难以定位。这里明确返回 404 JSON。
+        if full_path == "api" or full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail=f"API endpoint not found: /{full_path}")
+
+        # 2) 目录穿越防护:只允许返回 FRONTEND_DIR 内的文件
+        try:
+            target = (FRONTEND_DIR / full_path).resolve()
+            if target.is_file() and target.is_relative_to(FRONTEND_DIR.resolve()):
+                return FileResponse(str(target))
+        except (OSError, ValueError):
+            pass
+
         return FileResponse(str(FRONTEND_DIR / "index.html"))

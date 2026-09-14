@@ -108,7 +108,7 @@ const DeviceDetailPage = {
                 </div>
 
                 <!-- Front Panel -->
-                <div class="card" style="margin-top:20px;" id="frontPanelSection" style="display:none;">
+                <div class="card" id="frontPanelSection" style="margin-top:20px;display:none;">
                     <h4>Device Front Panel</h4>
                     <div id="frontPanelContainer"></div>
                 </div>

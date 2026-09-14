@@ -49,33 +49,44 @@ class WebSocketManager:
             await self.disconnect(ws)
 
     async def broadcast(self, event: str, payload: dict[str, Any]) -> None:
-        """Broadcast a message to ALL connected clients."""
+        """Broadcast a message to ALL connected clients.
+
+        锁内只做连接快照;实际发送与断连都在锁外进行 —— 既避免
+        ``disconnect`` 重入同一把不可重入的 Lock 造成死锁,也避免慢客户端
+        阻塞其它连接的发送。
+        """
         message = json.dumps({"event": event, **payload})
         async with self._lock:
-            dead: list[WebSocket] = []
-            for ws in list(self._connections.keys()):
-                try:
-                    await ws.send_text(message)
-                except Exception:
-                    dead.append(ws)
-            for ws in dead:
-                await self.disconnect(ws)
+            targets = list(self._connections.keys())
+
+        dead: list[WebSocket] = []
+        for ws in targets:
+            try:
+                await ws.send_text(message)
+            except Exception:
+                dead.append(ws)
+        for ws in dead:
+            await self.disconnect(ws)
 
     async def broadcast_to_subscribers(
         self, device_id: str, event: str, payload: dict[str, Any]
     ) -> None:
-        """Send a message to all clients subscribed to a specific device."""
+        """Send a message to all clients subscribed to a specific device.
+
+        与 :meth:`broadcast` 同理:锁内只取目标快照,发送/断连在锁外。
+        """
         message = json.dumps({"event": event, "device_id": device_id, **payload})
         async with self._lock:
-            dead: list[WebSocket] = []
-            for ws, subs in self._connections.items():
-                if device_id in subs:
-                    try:
-                        await ws.send_text(message)
-                    except Exception:
-                        dead.append(ws)
-            for ws in dead:
-                await self.disconnect(ws)
+            targets = [ws for ws, subs in self._connections.items() if device_id in subs]
+
+        dead: list[WebSocket] = []
+        for ws in targets:
+            try:
+                await ws.send_text(message)
+            except Exception:
+                dead.append(ws)
+        for ws in dead:
+            await self.disconnect(ws)
 
     @property
     def active_connections(self) -> int:

@@ -1,5 +1,6 @@
 """SNMP metric collection service — periodically polls devices for metrics."""
 import asyncio
+import functools
 from datetime import datetime
 
 from loguru import logger
@@ -18,6 +19,15 @@ from ..websocket import ws_manager
 # Track running collection tasks by device_id
 _collector_tasks: dict[str, asyncio.Task] = {}
 _running = False
+
+
+def _release_task(device_id: str, task: asyncio.Task) -> None:
+    """采集任务完成后从 _collector_tasks 移除,使下一轮能重新调度。
+
+    仅当字典中仍是同一个 task 时才移除(避免误删更新后的任务)。
+    """
+    if _collector_tasks.get(device_id) is task:
+        _collector_tasks.pop(device_id, None)
 
 async def start_collector() -> None:
     """Start the SNMP collector background service."""
@@ -53,6 +63,9 @@ async def _collection_loop() -> None:
                 devices = result.scalars().all()
 
                 for device in devices:
+                    # 只在该设备当前没有采集任务时新建。
+                    # 任务完成后会通过 done_callback 从 _collector_tasks 移除,
+                    # 因此下一轮循环能再次采集(否则设备只被采集一次)。
                     if device.id not in _collector_tasks:
                         task = asyncio.create_task(
                             _collect_device_metrics(device.id, device.ip_address,
@@ -60,6 +73,9 @@ async def _collection_loop() -> None:
                                                     device.snmp_version)
                         )
                         _collector_tasks[device.id] = task
+                        task.add_done_callback(
+                            functools.partial(_release_task, device.id)
+                        )
 
                 # Clean up tasks for removed/disabled devices
                 active_ids = {d.id for d in devices}
@@ -69,7 +85,6 @@ async def _collection_loop() -> None:
                         del _collector_tasks[did]
 
         except Exception as e:
-            pass
             logger.error(f"Collection loop error: {e}")
 
         await asyncio.sleep(settings.METRICS_COLLECTION_INTERVAL)
