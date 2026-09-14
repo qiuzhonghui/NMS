@@ -1,3 +1,4 @@
+import os
 import sys
 from logging.config import fileConfig
 from pathlib import Path
@@ -23,8 +24,12 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# 用应用配置覆盖 ini 中的 URL(优先环境变量,如 DB_HOST/DB_PASSWORD)
-config.set_main_option("sqlalchemy.url", settings.database_url_sync)
+# 数据库 URL:默认取应用配置;ALEMBIC_DATABASE_URL 可覆盖
+# (用于无 MySQL 环境生成/校验迁移,例如 sqlite:///./_tmp.db)
+config.set_main_option(
+    "sqlalchemy.url",
+    os.getenv("ALEMBIC_DATABASE_URL") or settings.database_url_sync,
+)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
