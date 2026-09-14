@@ -10,24 +10,14 @@ from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from .config import settings
-from .database import close_db, init_db
-
-# Import routers (lazy — added as they are built)
-from .routers import (
-    ai_settings,
-    alerts,
-    dashboards,
-    device_models,
-    devices,
-    discovery,
-    front_panels,
-    metrics,
-    mib_manager,
-    racks,
-    snmp_templates,
-    topology,
-    zabbix_templates,
+from .core import (
+    MODULE_SPECS,
+    SERVICE_SPECS,
+    BootReport,
+    ModuleRegistry,
+    ServiceRegistry,
 )
+from .database import close_db, init_db
 from .websocket import ws_manager
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
@@ -41,33 +31,39 @@ def get_version() -> str:
         return "1.0.0"
 
 
+# 启动报告 + 后台服务注册表(模块级单例:stop 必须复用 start 的同一实例)
+boot_report = BootReport()
+service_registry = ServiceRegistry(SERVICE_SPECS, boot_report)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan: startup and shutdown events."""
+    """Application lifespan: startup and shutdown events.
+
+    每一步都做**故障隔离**:数据库初始化或任一后台服务失败都不会阻止应用启动。
+    失败详情记入 ``boot_report``,可通过 ``GET /api/system/modules`` 查看。
+    """
     logger.info("Starting NMS application...")
-    await init_db()
-    logger.info("Database tables ensured.")
 
-    # Start background monitoring services
-    from .services.alert_engine import start_alert_engine, stop_alert_engine
-    from .services.icmp_monitor import start_monitor, stop_monitor
-    from .services.retention import start_retention, stop_retention
-    from .services.snmp_collector import start_collector, stop_collector
+    try:
+        await init_db()
+        logger.info("Database tables ensured.")
+    except Exception as exc:
+        boot_report.startup_errors["database"] = f"{type(exc).__name__}: {exc}"
+        logger.error(
+            f"数据库初始化失败,应用仍将启动(依赖数据库的接口会返回错误): {exc}"
+        )
 
-    await start_collector()
-    await start_monitor()
-    await start_alert_engine()
-    await start_retention()
-    logger.info("Background services started.")
+    await service_registry.start_all()
 
     yield
 
     logger.info("Shutting down NMS application...")
-    await stop_collector()
-    await stop_monitor()
-    await stop_alert_engine()
-    await stop_retention()
-    await close_db()
+    await service_registry.stop_all()
+    try:
+        await close_db()
+    except Exception as exc:
+        logger.error(f"关闭数据库连接失败: {exc}")
     logger.info("Shutdown complete.")
 
 
@@ -88,21 +84,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- API Routers ---
-app.include_router(discovery.router, prefix="/api")
-app.include_router(devices.router, prefix="/api")
-app.include_router(metrics.router, prefix="/api")
-app.include_router(topology.router, prefix="/api")
-app.include_router(racks.router, prefix="/api")
-app.include_router(front_panels.router, prefix="/api")
-app.include_router(alerts.router, prefix="/api")
-app.include_router(device_models.router, prefix="/api")
-app.include_router(device_models.template_router, prefix="/api")
-app.include_router(dashboards.router, prefix="/api")
-app.include_router(snmp_templates.router, prefix="/api")
-app.include_router(mib_manager.router, prefix="/api")
-app.include_router(ai_settings.router, prefix="/api")
-app.include_router(zabbix_templates.router, prefix="/api")
+# --- API Modules ---
+# 逐个隔离挂载:任一模块导入失败只导致该模块的接口缺失,应用照常启动。
+# 挂载清单见 app/core/specs.py;顺序即路由匹配顺序。
+ModuleRegistry(MODULE_SPECS, boot_report).mount_all(app)
 
 
 # --- WebSocket endpoint ---
@@ -178,6 +163,16 @@ async def update_settings(data: SettingsUpdate):
     settings.METRICS_COLLECTION_INTERVAL = data.snmp_interval
     settings.ALERT_CHECK_INTERVAL = data.alert_interval
     return {"status": "ok", "icmp_interval": data.icmp_interval}
+
+
+@app.get("/api/system/modules")
+async def system_modules():
+    """启动健康报告:哪些模块/服务已加载、哪些失败及失败原因。
+
+    这是「故障隔离」的可观测入口 —— 某个模块坏掉时这里会显示它失败,
+    而其余模块照常工作,便于快速定位。
+    """
+    return boot_report.as_dict()
 
 
 # Serve frontend static files if they exist

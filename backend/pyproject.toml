@@ -37,6 +37,7 @@ warn_unused_configs = true
 # 过渡期:只检查纯逻辑模块。follow_imports=skip 避免递归检查 routers/models。
 follow_imports = "skip"
 files = [
+    "app/core/",
     "app/utils/",
     "app/services/snmp.py",
     "app/services/scanner.py",

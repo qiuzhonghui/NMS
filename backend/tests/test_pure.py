@@ -2,10 +2,9 @@
 from app.services.scanner import NetworkScanner, mac_oui_to_vendor
 from app.services.zabbix_converter import parse_zabbix_template, preview_conversion
 from app.utils.cidr import parse_network_ranges
-from app.utils.mib_parser import parse_mib_oids, parse_cisco_supportlist, resolve_oids_second_pass
-from app.utils.snmp_helpers import detect_vendor, detect_device_type
-from app.utils.snmp_profiles import get_profile, SNMP_PROFILES, PREDEFINED_MODELS
-
+from app.utils.mib_parser import parse_cisco_supportlist, parse_mib_oids, resolve_oids_second_pass
+from app.utils.snmp_helpers import detect_device_type, detect_vendor
+from app.utils.snmp_profiles import PREDEFINED_MODELS, SNMP_PROFILES, get_profile
 
 # ── cidr ────────────────────────────────────────────────────────────────────
 
